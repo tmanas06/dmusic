@@ -7,6 +7,7 @@ import '../models/track.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/track_card.dart';
+import 'player_screen.dart';
 
 /// Search screen — debounced search with results list.
 class SearchScreen extends StatefulWidget {
@@ -178,6 +179,13 @@ class _SearchScreenState extends State<SearchScreen> {
                                         _results,
                                         index,
                                       );
+                                  // Auto-open full player
+                                  showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    backgroundColor: Colors.transparent,
+                                    builder: (_) => PlayerScreen(),
+                                  );
                                 },
                               );
                             },

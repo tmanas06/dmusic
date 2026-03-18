@@ -12,6 +12,7 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - DATA_DIR=/app/data
+      - PYTHONPATH=/app
       - MAX_DOWNLOAD_QUALITY=320
       - CORS_ORIGINS=*
     restart: unless-stopped
@@ -27,12 +28,12 @@ services:
     environment:
       - REDIS_URL=redis://redis:6379/0
       - DATA_DIR=/app/data
+      - PYTHONPATH=/app
     restart: unless-stopped
 
   redis:
     image: redis:7-alpine
-    ports:
-      - "6379:6379"
+    # Removed host port mapping "6379:6379" to avoid conflict with host process
     volumes:
       - redis_data:/data
     restart: unless-stopped
