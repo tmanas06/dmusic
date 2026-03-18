@@ -1,9 +1,11 @@
 services:
   api:
     build: ./backend
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
     ports:
       - "8000:8000"
     volumes:
+      - ./backend:/app
       - ./data:/app/data
     depends_on:
       - redis
@@ -18,6 +20,7 @@ services:
     build: ./backend
     command: celery -A worker.celery_app worker --loglevel=info --concurrency=4
     volumes:
+      - ./backend:/app
       - ./data:/app/data
     depends_on:
       - redis

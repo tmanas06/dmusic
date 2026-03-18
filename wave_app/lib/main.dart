@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
+import 'services/audio_service.dart';
 
 import 'theme/app_theme.dart';
 import 'models/track.dart';
@@ -29,9 +30,20 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(TrackAdapter());
 
+  try {
+    // Initialize Audio
+    await AudioPlayerService.init();
+  } catch (e) {
+    debugPrint('Audio initialization failed: $e');
+  }
+
   // Initialize library
   final libraryProvider = LibraryProvider();
-  await libraryProvider.init();
+  try {
+    await libraryProvider.init();
+  } catch (e) {
+    debugPrint('Library initialization failed: $e');
+  }
 
   runApp(
     MultiProvider(

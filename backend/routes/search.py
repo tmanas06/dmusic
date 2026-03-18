@@ -28,7 +28,9 @@ async def search(
         base_url = str(request.base_url).rstrip("/")
         results = await search_tracks(query=q, db=db, base_url=base_url)
         return results
-    except Exception:
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
         # Generic error — never expose internal details
         raise HTTPException(
             status_code=500,

@@ -39,10 +39,10 @@ class TrackResponse(BaseModel):
     id: str
     title: str
     artist: str
-    album: str
-    duration_seconds: int
-    artwork_url: str
-    quality_available: List[str]
+    album: str = ""
+    duration_seconds: int = 0
+    artwork_url: str = ""
+    quality_available: List[str] = ["320kbps"]
 
     class Config:
         from_attributes = True

@@ -61,7 +61,7 @@ class _SearchScreenState extends State<SearchScreen> {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('search failed: check your connection'),
+          content: Text('search failed: $e'),
           backgroundColor: Colors.redAccent,
         ),
       );

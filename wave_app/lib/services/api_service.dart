@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../models/track.dart';
 import 'config.dart';
 
@@ -28,8 +29,8 @@ class ApiService {
             .toList();
       }
       return [];
-    } on DioException {
-      // Generic error — never expose backend details to user
+    } catch (e) {
+      if (kDebugMode) print('ApiService Error: $e');
       throw Exception('Search failed. Please try again.');
     }
   }
