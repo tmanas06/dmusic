@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
@@ -127,6 +128,17 @@ class AudioPlayerService extends ChangeNotifier {
     );
   }
 
+  AudioPlayerService() {
+    // Sync state changes to UI
+    _handler?.playbackState.listen((_) => notifyListeners());
+    _handler?.mediaItem.listen((_) => notifyListeners());
+    
+    // Periodically update UI for progress bar smoothness
+    Timer.periodic(const Duration(milliseconds: 500), (timer) {
+      if (isPlaying) notifyListeners();
+    });
+  }
+
   WaveAudioHandler? get handler => _handler;
   AudioPlayer? get player => _handler?._player;
 
@@ -159,11 +171,19 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   Future<void> playQueue(List<Track> tracks, int startIndex) async {
-    if (_handler == null) return;
-    await _handler!.syncQueueWithTracks(tracks);
-    await _handler!.skipToQueueItem(startIndex);
-    await _handler!.play();
-    notifyListeners();
+    if (_handler == null) {
+      debugPrint('[wave] Error: AudioHandler NOT initialized!');
+      return;
+    }
+    try {
+      debugPrint('[wave] Starting queue with ${tracks.length} tracks at index $startIndex');
+      await _handler!.syncQueueWithTracks(tracks);
+      await _handler!.skipToQueueItem(startIndex);
+      await _handler!.play();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[wave] Playback Error: $e');
+    }
   }
 
   Future<void> togglePlayPause() async {
