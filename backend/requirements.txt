@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+yt-dlp
+ytmusicapi
+ffmpeg-python
+mutagen
+celery[redis]
+redis
+sqlalchemy
+aiofiles
+httpx
+python-multipart

@@ -1,0 +1,38 @@
+services:
+  api:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATA_DIR=/app/data
+      - MAX_DOWNLOAD_QUALITY=320
+      - CORS_ORIGINS=*
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: celery -A worker.celery_app worker --loglevel=info --concurrency=4
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - DATA_DIR=/app/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:
