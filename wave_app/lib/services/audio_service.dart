@@ -5,22 +5,26 @@ import '../models/track.dart';
 import 'config.dart';
 
 /// Proper Mobile-Ready Audio Handler using audio_service.
-/// This version supports lock screen controls and background playback.
+/// Fully manages the playlist and player state.
 class WaveAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   final _player = AudioPlayer();
+  final _playlist = ConcatenatingAudioSource(children: []);
 
   WaveAudioHandler() {
     _init();
   }
 
-  void _init() {
-    // Broadcast state changes
+  void _init() async {
+    // Connect playlist to player
+    await _player.setAudioSource(_playlist);
+
+    // Broadcast state changes from just_audio to audio_service
     _player.playbackEventStream.map(_transformEvent).pipe(playbackState);
 
-    // Listen for track completion
-    _player.processingStateStream.listen((state) {
-      if (state == ProcessingState.completed) {
-        skipToNext();
+    // Sync mediaItem when index changes
+    _player.currentIndexStream.listen((index) {
+      if (index != null && index < queue.value.length) {
+        mediaItem.add(queue.value[index]);
       }
     });
   }
@@ -38,7 +42,7 @@ class WaveAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
         MediaAction.seekForward,
         MediaAction.seekBackward,
       },
-      // androidCompactControlIndices: const [0, 1, 3],
+      // androidCompactControlIndices: const [0, 1, 3], // Disabled due to version conflict
       processingState: const {
         ProcessingState.idle: AudioProcessingState.idle,
         ProcessingState.loading: AudioProcessingState.loading,
@@ -67,45 +71,52 @@ class WaveAudioHandler extends BaseAudioHandler with QueueHandler, SeekHandler {
   Future<void> stop() => _player.stop();
 
   @override
-  Future<void> skipToNext() async {
-    // Handling queue logic from provider/service?
-  }
+  Future<void> skipToNext() => _player.seekToNext();
 
   @override
-  Future<void> skipToPrevious() async {
-    // Handling queue logic
-  }
+  Future<void> skipToPrevious() => _player.seekToPrevious();
 
-  Future<void> playTrack(Track track) async {
-    final mediaItem = MediaItem(
-      id: track.id,
-      album: track.album,
-      title: track.title,
-      artist: track.artist,
-      duration: Duration(seconds: track.durationSeconds),
-      artUri: Uri.parse('${AppConfig.apiBaseUrl}/art/${track.id}'),
-    );
+  @override
+  Future<void> skipToQueueItem(int index) => _player.seek(Duration.zero, index: index);
 
-    this.mediaItem.add(mediaItem);
+  Future<void> syncQueueWithTracks(List<Track> tracks) async {
+    final items = tracks.map((track) {
+      final url = track.isDownloaded && track.localFilePath != null
+          ? track.localFilePath!
+          : '${AppConfig.apiBaseUrl}/file/${track.id}';
+          
+      return MediaItem(
+        id: track.id,
+        album: track.album,
+        title: track.title,
+        artist: track.artist,
+        duration: Duration(seconds: track.durationSeconds),
+        artUri: Uri.parse('${AppConfig.apiBaseUrl}/art/${track.id}'),
+        extras: {'url': url},
+      );
+    }).toList();
 
-    try {
-      if (track.isDownloaded && track.localFilePath != null) {
-        await _player.setFilePath(track.localFilePath!);
-      } else {
-        await _player.setUrl('${AppConfig.apiBaseUrl}/file/${track.id}');
-      }
-      play();
-    } catch (e) {
-      debugPrint('Playback error: $e');
-    }
+    queue.add(items);
+
+    // Build just_audio sources
+    final sources = items.map((item) {
+      final url = item.extras!['url'] as String;
+      return url.startsWith('http') 
+          ? AudioSource.uri(Uri.parse(url))
+          : AudioSource.file(url);
+    }).toList();
+
+    await _playlist.clear();
+    await _playlist.addAll(sources);
   }
 }
 
-/// Legacy wrapper for UI compatibility
+/// Singleton service to bridge UI and AudioHandler
 class AudioPlayerService extends ChangeNotifier {
   static WaveAudioHandler? _handler;
   
   static Future<void> init() async {
+    if (_handler != null) return;
     _handler = await AudioService.init(
       builder: () => WaveAudioHandler(),
       config: const AudioServiceConfig(
@@ -116,65 +127,81 @@ class AudioPlayerService extends ChangeNotifier {
     );
   }
 
-  WaveAudioHandler get handler => _handler!;
-  AudioPlayer get player => handler._player;
+  WaveAudioHandler? get handler => _handler;
+  AudioPlayer? get player => _handler?._player;
 
-  Track? _currentTrack;
-  List<Track> _queue = [];
-  int _currentIndex = -1;
+  Track? get currentTrack {
+    final mid = _handler?.mediaItem.value;
+    if (mid == null) return null;
+    return Track(
+      id: mid.id,
+      title: mid.title,
+      artist: mid.artist ?? '',
+      album: mid.album ?? '',
+      durationSeconds: mid.duration?.inSeconds ?? 0,
+      artworkUrl: mid.artUri?.toString() ?? '',
+    );
+  }
 
-  Track? get currentTrack => _currentTrack;
-  bool get isPlaying => player.playing;
-  bool get hasTrack => _currentTrack != null;
-  bool get hasNext => _currentIndex < _queue.length - 1;
-  bool get hasPrevious => _currentIndex > 0;
+  bool get isPlaying => player?.playing ?? false;
+  bool get hasTrack => currentTrack != null;
   
-  Duration get position => player.position;
-  Duration get duration => player.duration ?? Duration.zero;
+  Stream<Duration> get positionStream => player?.positionStream ?? const Stream.empty();
+  Stream<Duration?> get durationStream => player?.durationStream ?? const Stream.empty();
+  Duration get position => player?.position ?? Duration.zero;
+  Duration get duration => player?.duration ?? Duration.zero;
 
-  // Bridge streams for UI
-  Stream<Duration> get positionStream => player.positionStream;
-  Stream<Duration?> get durationStream => player.durationStream;
+  bool get isShuffleEnabled => player?.shuffleModeEnabled ?? false;
+  bool get isRepeatEnabled => player?.loopMode != LoopMode.off;
 
   Future<void> playTrack(Track track) async {
-    _currentTrack = track;
-    await handler.playTrack(track);
+    await playQueue([track], 0);
+  }
+
+  Future<void> playQueue(List<Track> tracks, int startIndex) async {
+    if (_handler == null) return;
+    await _handler!.syncQueueWithTracks(tracks);
+    await _handler!.skipToQueueItem(startIndex);
+    await _handler!.play();
     notifyListeners();
   }
 
   Future<void> togglePlayPause() async {
-    if (player.playing) {
-      await handler.pause();
+    if (isPlaying) {
+      await _handler?.pause();
     } else {
-      await handler.play();
+      await _handler?.play();
     }
     notifyListeners();
   }
 
-  Future<void> playQueue(List<Track> tracks, int startIndex) async {
-    _queue = tracks;
-    _currentIndex = startIndex;
-    await playTrack(_queue[_currentIndex]);
-  }
-
   Future<void> skipNext() async {
-    if (_currentIndex < _queue.length - 1) {
-      _currentIndex++;
-      await playTrack(_queue[_currentIndex]);
-    }
+    await _handler?.skipToNext();
+    notifyListeners();
   }
 
   Future<void> skipPrevious() async {
-    if (_currentIndex > 0) {
-      _currentIndex--;
-      await playTrack(_queue[_currentIndex]);
-    }
+    await _handler?.skipToPrevious();
+    notifyListeners();
   }
 
-  Future<void> seek(Duration position) => handler.seek(position);
+  Future<void> seek(Duration position) => _handler?.seek(position) ?? Future.value();
+  
+  void toggleShuffle() {
+    final newMode = !isShuffleEnabled;
+    player?.setShuffleModeEnabled(newMode);
+    notifyListeners();
+  }
 
-  void toggleShuffle() {} // Placeholder
-  void toggleRepeat() {} // Placeholder
-  bool get isShuffleEnabled => false;
-  bool get isRepeatEnabled => false;
+  void toggleRepeat() {
+    final mode = isRepeatEnabled ? LoopMode.off : LoopMode.one;
+    player?.setLoopMode(mode);
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    // Handler is global, don't dispose player here
+    super.dispose();
+  }
 }
