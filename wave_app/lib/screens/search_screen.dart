@@ -57,10 +57,14 @@ class _SearchScreenState extends State<SearchScreen> {
         _hasSearched = true;
       });
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _hasSearched = true;
-      });
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('search failed: check your connection'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 

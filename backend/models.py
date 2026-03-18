@@ -25,6 +25,7 @@ class TrackMapping(Base):
     album = Column(String, default="")
     duration_seconds = Column(Integer, default=0)
     artwork_filename = Column(String, default="")                  # local filename in /data/art/
+    source_thumbnail_url = Column(String, default="")              # yt thumbnail url
     quality_available = Column(String, default="128kbps,256kbps,320kbps")
     created_at = Column(DateTime, server_default=func.now())
 

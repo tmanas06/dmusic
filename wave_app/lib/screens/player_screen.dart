@@ -117,13 +117,17 @@ class _PlayerScreenState extends State<PlayerScreen>
           ),
           const SizedBox(height: 24),
 
-          // Album artwork with rotation
+          // Album artwork with rotation and pulse
           AnimatedBuilder(
             animation: _rotationController,
             builder: (context, child) {
+              final pulse = 1.0 + 0.03 * sin(_rotationController.value * 2 * pi * 4);
               return Transform.rotate(
                 angle: _rotationController.value * 2 * pi,
-                child: child,
+                child: Transform.scale(
+                  scale: pulse,
+                  child: child,
+                ),
               );
             },
             child: Container(

@@ -6,6 +6,7 @@ class MoodCard extends StatefulWidget {
   final String emoji;
   final String title;
   final String count;
+  final String imageUrl;
   final List<Color> gradientColors;
   final VoidCallback? onTap;
 
@@ -14,6 +15,7 @@ class MoodCard extends StatefulWidget {
     required this.emoji,
     required this.title,
     required this.count,
+    required this.imageUrl,
     required this.gradientColors,
     this.onTap,
   });
@@ -76,6 +78,17 @@ class _MoodCardState extends State<MoodCard>
           ),
           child: Stack(
             children: [
+              // Background image
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.moodCardRadius),
+                  child: Image.network(
+                    widget.imageUrl,
+                    fit: BoxFit.cover,
+                    opacity: const AlwaysStoppedAnimation(0.4),
+                  ),
+                ),
+              ),
               // Gradient overlay (transparent top → dark bottom)
               Positioned.fill(
                 child: DecoratedBox(
@@ -128,34 +141,4 @@ class _MoodCardState extends State<MoodCard>
       ),
     );
   }
-}
-
-/// Predefined mood card data
-class MoodPresets {
-  static const List<Map<String, dynamic>> moods = [
-    {
-      'emoji': '🌙',
-      'title': 'Late Night',
-      'count': '24 tracks',
-      'colors': [Color(0xFF2D1B69), Color(0xFF11001C)],
-    },
-    {
-      'emoji': '🔥',
-      'title': 'Energy',
-      'count': '18 tracks',
-      'colors': [Color(0xFF8B2500), Color(0xFF1A0500)],
-    },
-    {
-      'emoji': '💜',
-      'title': 'Chill',
-      'count': '32 tracks',
-      'colors': [Color(0xFF1B3A4B), Color(0xFF0A1628)],
-    },
-    {
-      'emoji': '🌿',
-      'title': 'Focus',
-      'count': '15 tracks',
-      'colors': [Color(0xFF1B4B2A), Color(0xFF0A1C10)],
-    },
-  ];
 }

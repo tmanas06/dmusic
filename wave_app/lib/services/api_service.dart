@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'package:dio/dio.dart';
 import '../models/track.dart';
+import 'config.dart';
 
 /// API service for communicating with the wave. backend.
 /// All URLs point to YOUR server only — no external references.
 class ApiService {
-  // For Android emulator use 10.0.2.2, for iOS simulator use localhost
-  static const _base = 'http://10.0.2.2:8000';
+  static const _base = AppConfig.apiBaseUrl;
 
   final Dio _dio;
 
@@ -32,6 +31,34 @@ class ApiService {
     } on DioException {
       // Generic error — never expose backend details to user
       throw Exception('Search failed. Please try again.');
+    }
+  }
+
+  /// Get trending tracks for home screen
+  Future<List<Track>> getTrending() async {
+    try {
+      final res = await _dio.get('/trending');
+      if (res.data is List) {
+        return (res.data as List)
+            .map((j) => Track.fromJson(j as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } on DioException {
+      throw Exception('Failed to fetch trending tracks.');
+    }
+  }
+
+  /// Get dynamic mood categories
+  Future<List<Map<String, dynamic>>> getMoods() async {
+    try {
+      final res = await _dio.get('/moods');
+      if (res.data is List) {
+        return List<Map<String, dynamic>>.from(res.data as List);
+      }
+      return [];
+    } on DioException {
+      throw Exception('Failed to fetch moods.');
     }
   }
 

@@ -92,11 +92,9 @@ async def search_tracks(query: str, db: Session, base_url: str) -> List[TrackRes
             duration_text = item.get("duration", "0:00")
             duration_seconds = _parse_duration(duration_text)
 
-            # Download artwork
+            # Store thumbnail URL but don't download it yet
             thumbnail_url = _get_best_thumbnail(item.get("thumbnails", []))
-            artwork_filename = ""
-            if thumbnail_url:
-                artwork_filename = await _download_artwork(thumbnail_url, internal_id)
+            artwork_filename = "" # Empty until user chooses to download
 
             # Store mapping in DB (source_video_id NEVER leaves the backend)
             mapping = TrackMapping(
@@ -107,6 +105,7 @@ async def search_tracks(query: str, db: Session, base_url: str) -> List[TrackRes
                 album=album_name,
                 duration_seconds=duration_seconds,
                 artwork_filename=artwork_filename,
+                source_thumbnail_url=thumbnail_url,
             )
             db.add(mapping)
             db.commit()
@@ -140,3 +139,70 @@ def _parse_duration(duration_str: str) -> int:
     except (ValueError, IndexError):
         pass
     return 0
+
+
+async def get_trending_tracks(db: Session, base_url: str) -> List[TrackResponse]:
+    """
+    Fetch trending tracks. Returns wave internal schema.
+    Uses a filtered search for better metadata consistency across regions.
+    """
+    try:
+        from ytmusicapi import YTMusic
+        ytmusic = YTMusic()
+        # Using a broad search with 'songs' filter is more reliable for metadata 
+        # than different charts structures across regions.
+        raw_results = ytmusic.search("top hits 2024", filter="songs", limit=20)
+        if not raw_results:
+            return []
+    except Exception:
+        return []
+
+    tracks: List[TrackResponse] = []
+    # Limit to 10 for home screen
+    for item in raw_results[:15]:
+        if not item.get("videoId"):
+            continue
+
+        source_video_id = item["videoId"]
+
+        # Check if we already have a mapping
+        existing = db.query(TrackMapping).filter(
+            TrackMapping.source_video_id == source_video_id
+        ).first()
+
+        if existing:
+            internal_id = existing.internal_id
+        else:
+            internal_id = _generate_internal_id()
+            title = item.get("title", "Unknown")
+            artists = item.get("artists", [])
+            artist_name = artists[0]["name"] if artists else "Unknown Artist"
+            
+            thumbnail_url = _get_best_thumbnail(item.get("thumbnails", []))
+            artwork_filename = ""
+
+            mapping = TrackMapping(
+                internal_id=internal_id,
+                source_video_id=source_video_id,
+                title=title,
+                artist=artist_name,
+                album=item.get("album", {}).get("name", "") if isinstance(item.get("album"), dict) else "",
+                duration_seconds=_parse_duration(item.get("duration", "0:00")),
+                artwork_filename=artwork_filename,
+                source_thumbnail_url=thumbnail_url,
+            )
+            db.add(mapping)
+            db.commit()
+            existing = mapping
+
+        tracks.append(TrackResponse(
+            id=existing.internal_id,
+            title=existing.title,
+            artist=existing.artist,
+            album=existing.album,
+            duration_seconds=existing.duration_seconds,
+            artwork_url=f"{base_url}/art/{existing.internal_id}",
+            quality_available=existing.quality_available.split(","),
+        ))
+
+    return tracks

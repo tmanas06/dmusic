@@ -68,6 +68,7 @@ def download_track_task(self, internal_id: str, quality: str):
             artist=mapping.artist,
             album=mapping.album,
             quality=quality,
+            source_thumbnail_url=mapping.source_thumbnail_url,
         )
 
         self.update_state(state="PROGRESS", meta={"progress": 90})

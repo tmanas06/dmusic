@@ -19,7 +19,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final List<Track> _trendingTracks = [];
+  List<Map<String, dynamic>> _moods = [];
   bool _isLoading = true;
+  bool _isMoodsLoading = true;
 
   // Blob animation controllers
   late AnimationController _blobController1;
@@ -38,18 +40,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     )..repeat(reverse: true);
 
     _loadTrendingTracks();
+    _loadMoods();
+  }
+
+  Future<void> _loadMoods() async {
+    try {
+      final api = ApiService();
+      final results = await api.getMoods();
+      if (mounted) {
+        setState(() {
+          _moods = results;
+          _isMoodsLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isMoodsLoading = false);
+    }
   }
 
   Future<void> _loadTrendingTracks() async {
     try {
       final api = ApiService();
-      final results = await api.search('trending hits 2024');
-      setState(() {
-        _trendingTracks.addAll(results.take(10));
-        _isLoading = false;
-      });
+      final results = await api.getTrending();
+      if (mounted) {
+        setState(() {
+          _trendingTracks.clear();
+          _trendingTracks.addAll(results.take(15));
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -198,21 +219,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     const SizedBox(height: 12),
                     SizedBox(
                       height: 155,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: MoodPresets.moods.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 12),
-                        itemBuilder: (context, index) {
-                          final mood = MoodPresets.moods[index];
-                          return MoodCard(
-                            emoji: mood['emoji'] as String,
-                            title: mood['title'] as String,
-                            count: mood['count'] as String,
-                            gradientColors: mood['colors'] as List<Color>,
-                          );
-                        },
-                      ),
+                      child: _isMoodsLoading 
+                        ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent))
+                        : ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: _moods.length,
+                          separatorBuilder: (_, __) => const SizedBox(width: 12),
+                          itemBuilder: (context, index) {
+                            final mood = _moods[index];
+                            // Parse colors from hex strings
+                            final List<Color> colors = (mood['colors'] as List)
+                                .map((c) => Color(int.parse(c.toString().replaceAll('#', '0xFF'))))
+                                .toList();
+                            
+                            return MoodCard(
+                              emoji: mood['emoji'] as String,
+                              title: mood['title'] as String,
+                              count: "${Random().nextInt(50) + 10} tracks",
+                              imageUrl: mood['image'] as String,
+                              gradientColors: colors,
+                              onTap: () {
+                                // Navigate to search with this query
+                                // In a real app we'd trigger a search here
+                              },
+                            );
+                          },
+                        ),
                     ),
                   ],
                 ),

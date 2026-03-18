@@ -7,6 +7,7 @@ All source references stay server-side.
 import os
 import glob
 import yt_dlp
+import httpx
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3, TIT2, TPE1, TALB, APIC, ID3NoHeaderError
 
@@ -29,6 +30,7 @@ def download_track(
     artist: str,
     album: str,
     quality: str,
+    source_thumbnail_url: str = "",
 ) -> str:
     """
     Download audio from source, convert to MP3, sanitize metadata.
@@ -64,6 +66,18 @@ def download_track(
     # Download and convert
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         ydl.download([f"https://www.youtube.com/watch?v={source_video_id}"])
+
+    # Download artwork if requested and missing
+    if source_thumbnail_url:
+        artwork_path = os.path.join(ART_DIR, f"{internal_id}.jpg")
+        if not os.path.exists(artwork_path):
+            try:
+                resp = httpx.get(source_thumbnail_url, timeout=10.0)
+                if resp.status_code == 200:
+                    with open(artwork_path, "wb") as f:
+                        f.write(resp.content)
+            except Exception:
+                pass
 
     # Clean up any non-mp3 intermediary files
     for f in glob.glob(os.path.join(AUDIO_DIR, f"{internal_id}.*")):

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import '../models/track.dart';
+import 'config.dart';
 
 /// Audio player service wrapping just_audio.
 /// Manages playback state, seeking, and queue.
@@ -63,7 +64,7 @@ class AudioPlayerService extends ChangeNotifier {
         await _player.setFilePath(track.localFilePath!);
       } else {
         // Stream from server
-        await _player.setUrl('http://10.0.2.2:8000/file/${track.id}');
+        await _player.setUrl('${AppConfig.apiBaseUrl}/file/${track.id}');
       }
       await _player.play();
     } catch (e) {
