@@ -21,9 +21,11 @@ os.makedirs(os.path.join(DATA_DIR, "art"), exist_ok=True)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Initialize database on startup."""
+    """Initialize database on startup and cleanup on shutdown."""
     init_db()
     yield
+    from httpx_client import close_client
+    await close_client()
 
 
 app = FastAPI(
