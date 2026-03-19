@@ -113,14 +113,15 @@ async def search_tracks(query: str, db: Session, base_url: str) -> List[TrackRes
             existing = mapping
 
         # Build response (NO source references)
+        quality_str = existing.quality_available or "128kbps,256kbps,320kbps"
         tracks.append(TrackResponse(
             id=existing.internal_id,
             title=existing.title,
             artist=existing.artist,
             album=existing.album,
-            duration_seconds=existing.duration_seconds,
+            duration_seconds=existing.duration_seconds or 0,
             artwork_url=f"{base_url}/art/{existing.internal_id}",
-            quality_available=existing.quality_available.split(","),
+            quality_available=quality_str.split(","),
         ))
 
     return tracks
@@ -195,14 +196,16 @@ async def get_trending_tracks(db: Session, base_url: str) -> List[TrackResponse]
             db.commit()
             existing = mapping
 
+        # Build response
+        quality_str = existing.quality_available or "128kbps,256kbps,320kbps"
         tracks.append(TrackResponse(
             id=existing.internal_id,
             title=existing.title,
             artist=existing.artist,
             album=existing.album,
-            duration_seconds=existing.duration_seconds,
+            duration_seconds=existing.duration_seconds or 0,
             artwork_url=f"{base_url}/art/{existing.internal_id}",
-            quality_available=existing.quality_available.split(","),
+            quality_available=quality_str.split(","),
         ))
 
     return tracks
@@ -216,10 +219,16 @@ async def import_playlist(url: str, db: Session, base_url: str) -> List[TrackRes
     try:
         from ytmusicapi import YTMusic
         ytmusic = YTMusic()
-        # Extract playlist ID from URL
+        
+        # Robust playlist ID extraction
         playlist_id = url
         if "list=" in url:
             playlist_id = url.split("list=")[1].split("&")[0]
+        elif "playlist/" in url: # Handle music.youtube.com/playlist/ID
+            playlist_id = url.split("playlist/")[1].split("?")[0]
+        
+        # Remove any leading/trailing whitespace
+        playlist_id = playlist_id.strip()
         
         # Get playlist details
         playlist = ytmusic.get_playlist(playlist_id, limit=50)
@@ -248,6 +257,11 @@ async def import_playlist(url: str, db: Session, base_url: str) -> List[TrackRes
             artists = item.get("artists", [])
             artist_name = artists[0]["name"] if artists else "Unknown Artist"
             
+            # Use duration_seconds if direct, else parse duration string
+            duration_seconds = item.get("duration_seconds")
+            if duration_seconds is None:
+                duration_seconds = _parse_duration(item.get("duration", "0:00"))
+            
             thumbnail_url = _get_best_thumbnail(item.get("thumbnails", []))
             artwork_filename = ""
 
@@ -257,22 +271,31 @@ async def import_playlist(url: str, db: Session, base_url: str) -> List[TrackRes
                 title=title,
                 artist=artist_name,
                 album=item.get("album", {}).get("name", "") if isinstance(item.get("album"), dict) else "",
-                duration_seconds=item.get("duration_seconds", 0),
+                duration_seconds=duration_seconds,
                 artwork_filename=artwork_filename,
                 source_thumbnail_url=thumbnail_url,
             )
             db.add(mapping)
-            db.commit()
-            existing = mapping
+            try:
+                db.commit()
+                existing = mapping
+            except Exception:
+                db.rollback()
+                # If commit fails (e.g. duplicate during race), try finding it
+                existing = db.query(TrackMapping).filter(
+                    TrackMapping.source_video_id == source_video_id
+                ).first()
+                if not existing:
+                    continue # Should not happen, but safety first
 
         tracks.append(TrackResponse(
             id=existing.internal_id,
             title=existing.title,
             artist=existing.artist,
             album=existing.album,
-            duration_seconds=existing.duration_seconds,
+            duration_seconds=existing.duration_seconds or 0,
             artwork_url=f"{base_url}/art/{existing.internal_id}",
-            quality_available=existing.quality_available.split(","),
+            quality_available=(existing.quality_available or "128kbps,256kbps,320kbps").split(","),
         ))
 
     return tracks
