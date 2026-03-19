@@ -9,7 +9,7 @@ from typing import List
 
 from database import get_db
 from models import TrackResponse
-from services.searcher import search_tracks, get_trending_tracks
+from services.searcher import search_tracks, get_trending_tracks, import_playlist
 
 router = APIRouter()
 
@@ -100,3 +100,23 @@ async def get_moods():
             "image": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=400&q=80"
         },
     ]
+
+
+@router.get("/playlist", response_model=List[TrackResponse])
+async def playlist(
+    request: Request,
+    url: str = Query(..., min_length=1, description="Playlist URL"),
+    db: Session = Depends(get_db),
+):
+    """
+    Import tracks from a YouTube playlist.
+    """
+    try:
+        base_url = str(request.base_url).rstrip("/")
+        results = await import_playlist(url=url, db=db, base_url=base_url)
+        return results
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to import playlist.",
+        )

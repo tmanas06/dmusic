@@ -156,6 +156,8 @@ class AudioPlayerService extends ChangeNotifier {
   }
 
   bool get isPlaying => player?.playing ?? false;
+  bool get isBuffering => player?.processingState == ProcessingState.loading || 
+                          player?.processingState == ProcessingState.buffering;
   bool get hasTrack => currentTrack != null;
   
   Stream<Duration> get positionStream => player?.positionStream ?? const Stream.empty();

@@ -12,7 +12,7 @@ import 'providers/library_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
-import 'screens/equalizer_screen.dart';
+import 'screens/playlist_import_screen.dart';
 import 'widgets/mini_player.dart';
 
 void main() async {
@@ -85,7 +85,7 @@ class _WaveShellState extends State<WaveShell> {
     HomeScreen(),
     SearchScreen(),
     LibraryScreen(),
-    EqualizerScreen(),
+    PlaylistImportScreen(),
   ];
 
   @override
@@ -152,7 +152,7 @@ class _WaveShellState extends State<WaveShell> {
                           _buildNavItem(
                               2, Icons.library_music_rounded, 'library'),
                           _buildNavItem(
-                              3, Icons.equalizer_rounded, 'eq'),
+                              3, Icons.share_rounded, 'import'),
                         ],
                       ),
                     ),

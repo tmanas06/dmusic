@@ -11,6 +11,7 @@ class PlayerProvider extends ChangeNotifier {
 
   Track? get currentTrack => _audioService.currentTrack;
   bool get isPlaying => _audioService.isPlaying;
+  bool get isBuffering => _audioService.isBuffering;
   bool get hasTrack => _audioService.hasTrack;
   bool get isShuffleEnabled => _audioService.isShuffleEnabled;
   bool get isRepeatEnabled => _audioService.isRepeatEnabled;

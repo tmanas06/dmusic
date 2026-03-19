@@ -106,4 +106,20 @@ class ApiService {
   String getArtworkUrl(String trackId) {
     return '$_base/art/$trackId';
   }
+
+  /// Import tracks from a YouTube playlist URL
+  Future<List<Track>> importPlaylist(String url) async {
+    try {
+      final res = await _dio.get('/playlist', queryParameters: {'url': url});
+      if (res.data is List) {
+        return (res.data as List)
+            .map((j) => Track.fromJson(j as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      if (kDebugMode) print('ApiService Error: $e');
+      throw Exception('Playlist import failed. Please check the URL.');
+    }
+  }
 }

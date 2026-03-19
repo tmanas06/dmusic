@@ -206,3 +206,73 @@ async def get_trending_tracks(db: Session, base_url: str) -> List[TrackResponse]
         ))
 
     return tracks
+
+
+async def import_playlist(url: str, db: Session, base_url: str) -> List[TrackResponse]:
+    """
+    Import tracks from a YouTube playlist URL.
+    Returns wave internal schema.
+    """
+    try:
+        from ytmusicapi import YTMusic
+        ytmusic = YTMusic()
+        # Extract playlist ID from URL
+        playlist_id = url
+        if "list=" in url:
+            playlist_id = url.split("list=")[1].split("&")[0]
+        
+        # Get playlist details
+        playlist = ytmusic.get_playlist(playlist_id, limit=50)
+        raw_results = playlist.get("tracks", [])
+    except Exception:
+        return []
+
+    tracks: List[TrackResponse] = []
+    
+    for item in raw_results:
+        if not item.get("videoId"):
+            continue
+
+        source_video_id = item["videoId"]
+
+        # Check if we already have a mapping
+        existing = db.query(TrackMapping).filter(
+            TrackMapping.source_video_id == source_video_id
+        ).first()
+
+        if existing:
+            internal_id = existing.internal_id
+        else:
+            internal_id = _generate_internal_id()
+            title = item.get("title", "Unknown")
+            artists = item.get("artists", [])
+            artist_name = artists[0]["name"] if artists else "Unknown Artist"
+            
+            thumbnail_url = _get_best_thumbnail(item.get("thumbnails", []))
+            artwork_filename = ""
+
+            mapping = TrackMapping(
+                internal_id=internal_id,
+                source_video_id=source_video_id,
+                title=title,
+                artist=artist_name,
+                album=item.get("album", {}).get("name", "") if isinstance(item.get("album"), dict) else "",
+                duration_seconds=item.get("duration_seconds", 0),
+                artwork_filename=artwork_filename,
+                source_thumbnail_url=thumbnail_url,
+            )
+            db.add(mapping)
+            db.commit()
+            existing = mapping
+
+        tracks.append(TrackResponse(
+            id=existing.internal_id,
+            title=existing.title,
+            artist=existing.artist,
+            album=existing.album,
+            duration_seconds=existing.duration_seconds,
+            artwork_url=f"{base_url}/art/{existing.internal_id}",
+            quality_available=existing.quality_available.split(","),
+        ))
+
+    return tracks
