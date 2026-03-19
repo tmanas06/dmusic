@@ -103,11 +103,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     physics: const BouncingScrollPhysics(),
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 160),
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                      maxCrossAxisExtent: 220,
                       mainAxisSpacing: 16,
                       crossAxisSpacing: 16,
-                      childAspectRatio: 0.78,
+                      childAspectRatio: 0.76,
                     ),
                     itemCount: tracks.length,
                     itemBuilder: (context, index) {

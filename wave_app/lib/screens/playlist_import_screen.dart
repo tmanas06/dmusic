@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../providers/library_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
@@ -49,6 +50,44 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
           SnackBar(content: Text(e.toString())),
         );
       }
+    }
+  }
+
+  Future<void> _downloadAll() async {
+    if (_importedTracks.isEmpty) return;
+
+    final library = context.read<LibraryProvider>();
+    int count = 0;
+
+    // Show initial snackbar
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        backgroundColor: AppTheme.surface,
+        duration: const Duration(seconds: 1),
+        content: Text(
+          'starting sequential download...',
+          style: GoogleFonts.dmSans(color: AppTheme.textPrimary),
+        ),
+      ),
+    );
+
+    for (var track in _importedTracks) {
+      if (!library.isDownloaded(track.id) && !library.isDownloading(track.id)) {
+        await library.downloadTrack(track);
+        count++;
+      }
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: AppTheme.accent,
+          content: Text(
+            count > 0 ? 'completed $count downloads' : 'all tracks already in library',
+            style: GoogleFonts.dmSans(color: Colors.black, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
     }
   }
 
@@ -123,25 +162,42 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '${_importedTracks.length} tracks found',
-                          style: GoogleFonts.syne(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.textPrimary,
+                        Expanded(
+                          child: Text(
+                            '${_importedTracks.length} tracks found',
+                            style: GoogleFonts.syne(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.textPrimary,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        TextButton.icon(
-                          onPressed: () {
-                            context.read<PlayerProvider>().playQueue(_importedTracks, 0);
-                          },
-                          icon: const Icon(Icons.play_arrow_rounded, color: AppTheme.accent),
-                          label: Text(
-                            'Play All',
-                            style: GoogleFonts.dmSans(color: AppTheme.accent, fontWeight: FontWeight.bold),
-                          ),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            TextButton.icon(
+                              onPressed: _downloadAll,
+                              icon: const Icon(Icons.download_rounded, color: AppTheme.textMuted, size: 20),
+                              label: Text(
+                                'Download',
+                                style: GoogleFonts.dmSans(color: AppTheme.textMuted, fontSize: 13),
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            TextButton.icon(
+                              onPressed: () {
+                                context.read<PlayerProvider>().playQueue(_importedTracks, 0);
+                              },
+                              icon: const Icon(Icons.play_arrow_rounded, color: AppTheme.accent),
+                              label: Text(
+                                'Play All',
+                                style: GoogleFonts.dmSans(color: AppTheme.accent, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),

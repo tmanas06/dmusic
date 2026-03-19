@@ -33,7 +33,6 @@ class MiniPlayer extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             height: 72,
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
             decoration: BoxDecoration(
               color: AppTheme.surface.withValues(alpha: 0.9),
               borderRadius: BorderRadius.circular(16),

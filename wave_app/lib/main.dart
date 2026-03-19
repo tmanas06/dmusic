@@ -117,48 +117,51 @@ class _WaveShellState extends State<WaveShell> {
             ),
           ),
 
-          // Mini player (above bottom nav)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 72,
-            child: const MiniPlayer(),
-          ),
-
-          // Bottom navigation bar
+          // Layer (Mini player + Bottom Navigation)
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: ClipRect(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: AppTheme.bg.withValues(alpha: 0.85),
-                    border: const Border(
-                      top: BorderSide(color: AppTheme.border, width: 0.5),
-                    ),
-                  ),
-                  child: SafeArea(
-                    top: false,
-                    child: SizedBox(
-                      height: 56,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceAround,
-                        children: [
-                          _buildNavItem(0, Icons.home_rounded, 'home'),
-                          _buildNavItem(1, Icons.search_rounded, 'search'),
-                          _buildNavItem(
-                              2, Icons.library_music_rounded, 'library'),
-                          _buildNavItem(
-                              3, Icons.share_rounded, 'import'),
-                        ],
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Mini player
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 12),
+                  child: MiniPlayer(),
+                ),
+                const SizedBox(height: 8),
+
+                // Navigation Bar with backdrop blur
+                ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.bg.withValues(alpha: 0.85),
+                        border: const Border(
+                          top: BorderSide(color: AppTheme.border, width: 0.5),
+                        ),
+                      ),
+                      child: SafeArea(
+                        top: false,
+                        child: SizedBox(
+                          height: 60,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildNavItem(0, Icons.home_rounded, 'home'),
+                              _buildNavItem(1, Icons.search_rounded, 'search'),
+                              _buildNavItem(2, Icons.library_music_rounded, 'library'),
+                              _buildNavItem(3, Icons.share_rounded, 'import'),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
