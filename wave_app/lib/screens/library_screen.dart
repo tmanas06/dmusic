@@ -42,12 +42,30 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     color: AppTheme.textPrimary,
                   ),
                 ),
-                Text(
-                  '${tracks.length} tracks',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 13,
-                    color: AppTheme.textMuted,
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      '${tracks.length} tracks',
+                      style: GoogleFonts.dmSans(
+                        fontSize: 13,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                    if (tracks.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap: () => library.clearLibrary(),
+                        child: Text(
+                          'Clear All',
+                          style: GoogleFonts.dmSans(
+                            fontSize: 11,
+                            color: AppTheme.accent2.withValues(alpha: 0.8),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),
@@ -147,34 +165,61 @@ class _LibraryScreenState extends State<LibraryScreen> {
         children: [
           // Artwork
           Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppTheme.cardRadius),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.accent.withValues(alpha: 0.1),
-                      AppTheme.accent2.withValues(alpha: 0.1),
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(AppTheme.cardRadius),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.accent.withValues(alpha: 0.1),
+                          AppTheme.accent2.withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                    ),
+                    child: track.artworkUrl.isNotEmpty
+                        ? CachedNetworkImage(
+                            imageUrl: track.artworkUrl,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            errorWidget: (_, __, ___) => const Center(
+                              child: Icon(Icons.music_note_rounded,
+                                  color: AppTheme.textMuted, size: 32),
+                            ),
+                          )
+                        : const Center(
+                            child: Icon(Icons.music_note_rounded,
+                                color: AppTheme.textMuted, size: 32),
+                          ),
                   ),
                 ),
-                child: track.artworkUrl.isNotEmpty
-                    ? CachedNetworkImage(
-                        imageUrl: track.artworkUrl,
-                        fit: BoxFit.cover,
-                        width: double.infinity,
-                        errorWidget: (_, __, ___) => const Center(
-                          child: Icon(Icons.music_note_rounded,
-                              color: AppTheme.textMuted, size: 32),
-                        ),
-                      )
-                    : const Center(
-                        child: Icon(Icons.music_note_rounded,
-                            color: AppTheme.textMuted, size: 32),
+                // Small Delete Button on Corner
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () {
+                      context.read<LibraryProvider>().deleteTrack(track.id);
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: AppTheme.border.withValues(alpha: 0.2)),
                       ),
-              ),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: Colors.white70,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 8),

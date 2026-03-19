@@ -19,6 +19,8 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
   final TextEditingController _controller = TextEditingController();
   bool _isLoading = false;
   List<Track> _importedTracks = [];
+  bool _isBatchDownloading = false;
+  bool _stopBatchRequested = false;
 
   Future<void> _importPlaylist() async {
     if (_controller.text.isEmpty) return;
@@ -56,10 +58,14 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
   Future<void> _downloadAll() async {
     if (_importedTracks.isEmpty) return;
 
+    setState(() {
+      _isBatchDownloading = true;
+      _stopBatchRequested = false;
+    });
+
     final library = context.read<LibraryProvider>();
     int count = 0;
 
-    // Show initial snackbar
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         backgroundColor: AppTheme.surface,
@@ -72,6 +78,8 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
     );
 
     for (var track in _importedTracks) {
+      if (_stopBatchRequested) break;
+
       if (!library.isDownloaded(track.id) && !library.isDownloading(track.id)) {
         await library.downloadTrack(track);
         count++;
@@ -79,16 +87,29 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
     }
 
     if (mounted) {
+      setState(() {
+        _isBatchDownloading = false;
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          backgroundColor: AppTheme.accent,
+          backgroundColor: _stopBatchRequested ? AppTheme.surface : AppTheme.accent,
           content: Text(
-            count > 0 ? 'completed $count downloads' : 'all tracks already in library',
-            style: GoogleFonts.dmSans(color: Colors.black, fontWeight: FontWeight.bold),
+            _stopBatchRequested 
+              ? 'stopped after $count tracks'
+              : (count > 0 ? 'completed $count downloads' : 'all tracks already in library'),
+            style: GoogleFonts.dmSans(
+              color: _stopBatchRequested ? AppTheme.textPrimary : Colors.black, 
+              fontWeight: FontWeight.bold
+            ),
           ),
         ),
       );
     }
+  }
+
+  void _stopBatch() {
+    setState(() => _stopBatchRequested = true);
   }
 
   @override
@@ -179,11 +200,18 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             TextButton.icon(
-                              onPressed: _downloadAll,
-                              icon: const Icon(Icons.download_rounded, color: AppTheme.textMuted, size: 20),
+                              onPressed: _isBatchDownloading ? _stopBatch : _downloadAll,
+                              icon: Icon(
+                                _isBatchDownloading ? Icons.stop_rounded : Icons.download_rounded,
+                                color: _isBatchDownloading ? AppTheme.accent2 : AppTheme.textMuted,
+                                size: 20,
+                              ),
                               label: Text(
-                                'Download',
-                                style: GoogleFonts.dmSans(color: AppTheme.textMuted, fontSize: 13),
+                                _isBatchDownloading ? 'Stop' : 'Download',
+                                style: GoogleFonts.dmSans(
+                                  color: _isBatchDownloading ? AppTheme.accent2 : AppTheme.textMuted,
+                                  fontSize: 13,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 4),
