@@ -6,7 +6,7 @@ import 'config.dart';
 /// API service for communicating with the wave. backend.
 /// All URLs point to YOUR server only — no external references.
 class ApiService {
-  static const _base = AppConfig.apiBaseUrl;
+  static final _base = AppConfig.apiBaseUrl;
 
   final Dio _dio;
 

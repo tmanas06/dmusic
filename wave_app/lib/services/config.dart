@@ -1,5 +1,10 @@
 import 'package:flutter/foundation.dart';
 
 class AppConfig {
-  static const String apiBaseUrl = kIsWeb ? 'http://localhost:8000' : 'http://192.168.29.17:8000';
+  // We use localhost:8000 because we are using 'adb reverse'
+  // to bridge the phone's port 8000 to the laptop's port 8000 over USB.
+  static String get apiBaseUrl {
+    if (kIsWeb) return 'http://localhost:8000';
+    return 'http://localhost:8000';
+  }
 }

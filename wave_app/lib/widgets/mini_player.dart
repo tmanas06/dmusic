@@ -30,11 +30,11 @@ class MiniPlayer extends StatelessWidget {
       },
       child: ClipRRect(
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
           child: Container(
             height: 72,
             decoration: BoxDecoration(
-              color: AppTheme.surface.withValues(alpha: 0.9),
+              color: AppTheme.surface.withValues(alpha: 0.85),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppTheme.border),
             ),

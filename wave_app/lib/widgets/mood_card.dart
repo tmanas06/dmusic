@@ -59,10 +59,10 @@ class _MoodCardState extends State<MoodCard>
       child: ScaleTransition(
         scale: _scaleAnimation,
         child: Container(
-          width: 130,
-          height: 155,
+          width: 140, // Wider
+          height: 120, // Shorter
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(AppTheme.moodCardRadius),
+            borderRadius: BorderRadius.circular(12),
             gradient: LinearGradient(
               colors: widget.gradientColors,
               begin: Alignment.topLeft,
@@ -81,11 +81,17 @@ class _MoodCardState extends State<MoodCard>
               // Background image
               Positioned.fill(
                 child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTheme.moodCardRadius),
+                  borderRadius: BorderRadius.circular(12),
                   child: Image.network(
                     widget.imageUrl,
                     fit: BoxFit.cover,
                     opacity: const AlwaysStoppedAnimation(0.4),
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppTheme.surface2,
+                      width: double.infinity,
+                      height: double.infinity,
+                      child: const Icon(Icons.music_note_rounded, color: AppTheme.textMuted, size: 32),
+                    ),
                   ),
                 ),
               ),
@@ -94,7 +100,7 @@ class _MoodCardState extends State<MoodCard>
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     borderRadius:
-                        BorderRadius.circular(AppTheme.moodCardRadius),
+                        BorderRadius.circular(12),
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,

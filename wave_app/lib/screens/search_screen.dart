@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/track_card.dart';
 import 'player_screen.dart';
+import '../providers/navigation_provider.dart';
 
 /// Search screen — debounced search with results list.
 class SearchScreen extends StatefulWidget {
@@ -25,6 +26,21 @@ class _SearchScreenState extends State<SearchScreen> {
   List<Track> _results = [];
   bool _isLoading = false;
   bool _hasSearched = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final navigation = context.watch<NavigationProvider>();
+    if (navigation.pendingSearchQuery != null) {
+      final query = navigation.pendingSearchQuery!;
+      // Use microtask to clear the query after the build is complete
+      Future.microtask(() {
+        _searchController.text = query;
+        _performSearch(query);
+        navigation.consumeSearchQuery();
+      });
+    }
+  }
 
   @override
   void dispose() {

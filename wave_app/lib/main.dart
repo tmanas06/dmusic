@@ -1,59 +1,73 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
-import 'services/audio_service.dart';
 
+import 'services/audio_service.dart';
 import 'theme/app_theme.dart';
 import 'models/track.dart';
 import 'providers/player_provider.dart';
 import 'providers/library_provider.dart';
+import 'providers/navigation_provider.dart'; // Added navigation provider
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/playlist_import_screen.dart';
 import 'widgets/mini_player.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+void main() {
+  runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
 
-  // System UI styling
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: AppTheme.bg,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
+    // System UI styling
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: AppTheme.bg,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ));
 
-  // Initialize Hive
-  await Hive.initFlutter();
-  Hive.registerAdapter(TrackAdapter());
+    // Initialize Hive
+    try {
+      await Hive.initFlutter();
+      if (!Hive.isAdapterRegistered(0)) {
+        Hive.registerAdapter(TrackAdapter());
+      }
+    } catch (e) {
+      debugPrint('[wave] Hive initialization error: $e');
+    }
 
-  try {
     // Initialize Audio
-    await AudioPlayerService.init();
-  } catch (e) {
-    debugPrint('Audio initialization failed: $e');
-  }
+    try {
+      await AudioPlayerService.init();
+    } catch (e) {
+      debugPrint('[wave] Audio service initialization error: $e');
+    }
 
-  // Initialize library
-  final libraryProvider = LibraryProvider();
-  try {
-    await libraryProvider.init();
-  } catch (e) {
-    debugPrint('Library initialization failed: $e');
-  }
+    // Initialize Library
+    final libraryProvider = LibraryProvider();
+    try {
+      await libraryProvider.init();
+    } catch (e) {
+      debugPrint('[wave] Library initialization error: $e');
+    }
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => PlayerProvider()),
-        ChangeNotifierProvider.value(value: libraryProvider),
-      ],
-      child: const WaveApp(),
-    ),
-  );
+    runApp(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => PlayerProvider()),
+          ChangeNotifierProvider(create: (_) => NavigationProvider()), // Global navigation
+          ChangeNotifierProvider.value(value: libraryProvider),
+        ],
+        child: const WaveApp(),
+      ),
+    );
+  }, (error, stack) {
+    debugPrint('[wave] Global error: $error');
+    // We catch exceptions like font loading failures here to prevent the app from hanging or being killed.
+  });
 }
 
 class WaveApp extends StatelessWidget {
@@ -79,8 +93,6 @@ class WaveShell extends StatefulWidget {
 }
 
 class _WaveShellState extends State<WaveShell> {
-  int _currentIndex = 0;
-
   final List<Widget> _screens = const [
     HomeScreen(),
     SearchScreen(),
@@ -90,6 +102,9 @@ class _WaveShellState extends State<WaveShell> {
 
   @override
   Widget build(BuildContext context) {
+    final navigation = context.watch<NavigationProvider>();
+    final currentIndex = navigation.currentIndex;
+
     return Scaffold(
       backgroundColor: AppTheme.bg,
       body: Stack(
@@ -112,8 +127,8 @@ class _WaveShellState extends State<WaveShell> {
               );
             },
             child: KeyedSubtree(
-              key: ValueKey(_currentIndex),
-              child: _screens[_currentIndex],
+              key: ValueKey(currentIndex),
+              child: _screens[currentIndex],
             ),
           ),
 
@@ -135,10 +150,10 @@ class _WaveShellState extends State<WaveShell> {
                 // Navigation Bar with backdrop blur
                 ClipRect(
                   child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppTheme.bg.withValues(alpha: 0.85),
+                        color: AppTheme.bg.withValues(alpha: 0.8),
                         border: const Border(
                           top: BorderSide(color: AppTheme.border, width: 0.5),
                         ),
@@ -170,10 +185,11 @@ class _WaveShellState extends State<WaveShell> {
   }
 
   Widget _buildNavItem(int index, IconData icon, String label) {
-    final isActive = _currentIndex == index;
+    final navigation = context.read<NavigationProvider>();
+    final isActive = navigation.currentIndex == index;
 
     return GestureDetector(
-      onTap: () => setState(() => _currentIndex = index),
+      onTap: () => navigation.setTab(index),
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 64,

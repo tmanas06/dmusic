@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/track_card.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../models/track.dart';
 
 class PlaylistImportScreen extends StatefulWidget {
@@ -21,6 +22,205 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
   List<Track> _importedTracks = [];
   bool _isBatchDownloading = false;
   bool _stopBatchRequested = false;
+  List<Map<String, dynamic>> _pastSearches = [];
+  Box<Map>? _historyBox;
+
+  @override
+  void initState() {
+    super.initState();
+    _initHistory();
+  }
+
+  Future<void> _initHistory() async {
+    _historyBox = await Hive.openBox<Map>('playlist_history_v2');
+    if (mounted) {
+      setState(() {
+        _pastSearches = _historyBox!.values.map((e) => Map<String, dynamic>.from(e)).toList().reversed.toList();
+      });
+    }
+  }
+
+  void _saveSearch(String url, List<Track> tracks) {
+    if (url.isEmpty || _historyBox == null || tracks.isEmpty) return;
+    
+    final String title = "Playlist"; // Default
+    final String imageUrl = tracks.first.artworkUrl;
+
+    final Map<String, dynamic> entry = {
+      'url': url,
+      'title': title,
+      'imageUrl': imageUrl,
+      'trackCount': tracks.length,
+    };
+
+    // Remove if already exists with same url
+    _pastSearches.removeWhere((element) => element['url'] == url);
+    
+    _pastSearches.insert(0, entry);
+    
+    if (_pastSearches.length > 10) {
+      _pastSearches = _pastSearches.sublist(0, 10);
+    }
+
+    _historyBox!.clear();
+    for (var i = _pastSearches.length - 1; i >= 0; i--) {
+      _historyBox!.add(_pastSearches[i]);
+    }
+
+    setState(() {});
+  }
+
+  void _clearHistory() {
+    _historyBox?.clear();
+    setState(() {
+      _pastSearches = [];
+    });
+  }
+
+  Widget _buildRecentSearches() {
+    if (_pastSearches.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Recent Searches',
+                style: GoogleFonts.syne(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              TextButton(
+                onPressed: _clearHistory,
+                child: Text(
+                  'clear',
+                  style: GoogleFonts.dmSans(
+                    fontSize: 12,
+                    color: AppTheme.textMuted,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(
+          height: 180,
+          child: ListView.separated(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            scrollDirection: Axis.horizontal,
+            itemCount: _pastSearches.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 14),
+            itemBuilder: (context, index) {
+              final entry = _pastSearches[index];
+              final url = entry['url'] as String;
+              final title = entry['title'] as String;
+              final imageUrl = entry['imageUrl'] as String;
+              final trackCount = entry['trackCount'] as int? ?? 0;
+              
+              return GestureDetector(
+                onTap: () {
+                  _controller.text = url;
+                  _importPlaylist();
+                },
+                child: Container(
+                  width: 140,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surface,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppTheme.border.withValues(alpha: 0.5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ClipRRect(
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          child: Stack(
+                            children: [
+                              Image.network(
+                                imageUrl,
+                                width: double.infinity,
+                                height: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: AppTheme.surface2,
+                                  child: const Icon(Icons.music_note_rounded, color: AppTheme.textMuted),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 8,
+                                right: 8,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.playlist_play_rounded, size: 12, color: Colors.white),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        '$trackCount',
+                                        style: GoogleFonts.dmSans(
+                                          fontSize: 10,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              url.length > 20 ? '${url.substring(0, 20)}...' : url,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.dmSans(
+                                fontSize: 11,
+                                color: AppTheme.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<void> _importPlaylist() async {
     if (_controller.text.isEmpty) return;
@@ -33,6 +233,11 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
     try {
       final api = ApiService();
       final tracks = await api.importPlaylist(_controller.text);
+      
+      if (tracks.isNotEmpty) {
+        _saveSearch(_controller.text, tracks);
+      }
+
       setState(() {
         _importedTracks = tracks;
         _isLoading = false;
@@ -250,10 +455,12 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
             )
           else
             Expanded(
-              child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
+                    _buildRecentSearches(),
+                    const SizedBox(height: 40),
                     Icon(Icons.playlist_add_rounded, size: 64, color: AppTheme.textMuted.withValues(alpha: 0.2)),
                     const SizedBox(height: 16),
                     Text(
