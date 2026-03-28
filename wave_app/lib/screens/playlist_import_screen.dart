@@ -8,6 +8,7 @@ import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/track_card.dart';
 import '../models/track.dart';
+import 'profile_screen.dart';
 
 class PlaylistImportScreen extends StatefulWidget {
   const PlaylistImportScreen({super.key});
@@ -143,7 +144,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                 decoration: BoxDecoration(
                   color: AppTheme.surface,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.border.withValues(alpha: 0.5)),
+                  border: Border.all(color: AppTheme.border.withOpacity(0.5)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +172,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                                   gradient: LinearGradient(
                                     begin: Alignment.topCenter,
                                     end: Alignment.bottomCenter,
-                                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.4)],
+                                    colors: [Colors.transparent, Colors.black.withOpacity(0.4)],
                                   ),
                                 ),
                               ),
@@ -182,7 +183,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: Colors.black.withValues(alpha: 0.8),
+                                  color: Colors.black.withOpacity(0.8),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Row(
@@ -310,6 +311,22 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
           'import playlist',
           style: GoogleFonts.syne(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
         ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+              );
+            },
+            icon: Container(
+              width: 32, height: 32,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
+              child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 16),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
         centerTitle: true,
       ),
       body: Column(
@@ -332,7 +349,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                     style: GoogleFonts.dmSans(color: AppTheme.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Paste link here...',
-                      hintStyle: GoogleFonts.dmSans(color: AppTheme.textMuted.withValues(alpha: 0.5)),
+                      hintStyle: GoogleFonts.dmSans(color: AppTheme.textMuted.withOpacity(0.5)),
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       border: InputBorder.none,
                       suffixIcon: IconButton(
@@ -392,7 +409,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                   children: [
                     _buildRecentSearches(),
                     const SizedBox(height: 60),
-                    Icon(Icons.playlist_add_rounded, size: 64, color: AppTheme.textMuted.withValues(alpha: 0.1)),
+                    Icon(Icons.playlist_add_rounded, size: 64, color: AppTheme.textMuted.withOpacity(0.1)),
                     const SizedBox(height: 16),
                     Text('Search for a playlist to start listening', style: GoogleFonts.dmSans(color: AppTheme.textMuted)),
                     const SizedBox(height: 100),

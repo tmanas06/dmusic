@@ -45,7 +45,7 @@ class EqSlider extends StatelessWidget {
                 thumbShape: const RoundSliderThumbShape(
                   enabledThumbRadius: 6,
                 ),
-                overlayColor: AppTheme.accent.withValues(alpha: 0.1),
+                overlayColor: AppTheme.accent.withOpacity(0.1),
                 overlayShape: const RoundSliderOverlayShape(
                   overlayRadius: 14,
                 ),

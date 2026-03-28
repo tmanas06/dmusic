@@ -8,7 +8,9 @@ import '../theme/app_theme.dart';
 import '../models/track.dart';
 import '../providers/player_provider.dart';
 import '../providers/library_provider.dart';
+import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
+import 'profile_screen.dart';
 
 class PredictionScreen extends StatefulWidget {
   const PredictionScreen({super.key});
@@ -22,6 +24,7 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
   bool _isLoading = true;
   Offset _dragPosition = Offset.zero;
   double _dragAngle = 0;
+  bool _isProcessing = false;
   
   // Controls the 'fly away' or 'return' animation
   late AnimationController _swipeController;
@@ -95,8 +98,50 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
     }
   }
 
-  void _animateSwipe(Offset target, bool isRight) {
+  void _animateSwipe(Offset target, bool isRight) async {
+    if (_deck.isEmpty) return;
+    final track = _deck.first;
+
     HapticFeedback.mediumImpact();
+
+    // Trigger Blockchain Transaction
+    setState(() => _isProcessing = true);
+    
+    final auth = context.read<AuthProvider>();
+    
+    String? txHash;
+    
+    if (auth.isAuthenticated) {
+      txHash = await auth.sendBet(track.id, isRight);
+    } else {
+      // Prompt login if no wallet connected
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in with Google to bet.')),
+      );
+    }
+    
+    if (txHash != null) {
+      // Sync with Backend
+      ApiService().submitPrediction(track.id, isRight, txHash);
+    }
+    
+    setState(() => _isProcessing = false);
+
+    if (txHash == null) {
+      // Transaction cancelled or failed, return card to center
+      _swipeController.reset();
+      _swipeAnimation = Tween<Offset>(begin: _dragPosition, end: Offset.zero).animate(
+        CurvedAnimation(parent: _swipeController, curve: Curves.elasticOut),
+      )..addListener(() {
+          setState(() {
+            _dragPosition = _swipeAnimation.value;
+            _dragAngle = _dragPosition.dx / 20 * (pi / 180);
+          });
+        });
+      _swipeController.forward();
+      return;
+    }
+
     _swipeController.reset();
     _swipeAnimation = Tween<Offset>(begin: _dragPosition, end: target).animate(
       CurvedAnimation(parent: _swipeController, curve: Curves.fastOutSlowIn),
@@ -140,7 +185,7 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
                   center: Alignment.topRight,
                   radius: 1.5,
                   colors: [
-                    const Color(0xFF003366).withValues(alpha: 0.15),
+                    const Color(0xFF003366).withOpacity(0.15),
                     AppTheme.bg,
                   ],
                 ),
@@ -158,10 +203,28 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Icon(Icons.auto_awesome_rounded, color: Colors.blueAccent.shade200, size: 28),
-                          const SizedBox(width: 8),
-                          Text('Discovery', style: GoogleFonts.syne(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                          Row(
+                            children: [
+                              Icon(Icons.auto_awesome_rounded, color: Colors.blueAccent.shade200, size: 28),
+                              const SizedBox(width: 8),
+                              Text('Discovery', style: GoogleFonts.syne(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                              );
+                            },
+                            child: Container(
+                              width: 36, height: 36,
+                              decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
+                              child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 18),
+                            ),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -178,13 +241,16 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
                             ? Text('Looking for new music...', style: GoogleFonts.dmSans(color: AppTheme.textMuted))
                             : Stack(
                                 alignment: Alignment.center,
-                                children: _deck.asMap().entries.map((entry) {
-                                  final index = entry.key;
-                                  final track = entry.value;
-                                  final isTop = index == 0;
-                                  
-                                  return _buildCard(track, isTop);
-                                }).toList().reversed.toList(),
+                                children: [
+                                  ..._deck.asMap().entries.map((entry) {
+                                    final index = entry.key;
+                                    final track = entry.value;
+                                    final isTop = index == 0;
+                                    return _buildCard(track, isTop);
+                                  }).toList().reversed.toList(),
+                                  if (_isProcessing) 
+                                    _buildProcessingOverlay(),
+                                ],
                               ),
                   ),
                 ),
@@ -214,8 +280,8 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
             child: Transform.scale(
               scale: scale,
               child: GestureDetector(
-                onPanUpdate: isTop ? _onPanUpdate : null,
-                onPanEnd: isTop ? _onPanEnd : null,
+                onPanUpdate: isTop && !_isProcessing ? _onPanUpdate : null,
+                onPanEnd: isTop && !_isProcessing ? _onPanEnd : null,
                 child: Container(
                   width: MediaQuery.of(context).size.width * 0.88,
                   height: MediaQuery.of(context).size.height * 0.55,
@@ -223,7 +289,7 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
                     borderRadius: BorderRadius.circular(32),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.4),
+                        color: Colors.black.withOpacity(0.4),
                         blurRadius: 30,
                         spreadRadius: 2,
                       ),
@@ -250,7 +316,7 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
                                 end: Alignment.bottomCenter,
                                 colors: [
                                   Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.85),
+                                  Colors.black.withOpacity(0.85),
                                 ],
                               ),
                             ),
@@ -286,23 +352,39 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
                             right: _dragPosition.dx < 0 ? 40 : null,
                             child: Transform.rotate(
                               angle: _dragPosition.dx > 0 ? -0.2 : 0.2,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: _dragPosition.dx > 0 ? Colors.blueAccent : Colors.redAccent, 
-                                    width: 4
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: _dragPosition.dx > 0 ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: _dragPosition.dx > 0 ? Colors.blueAccent : Colors.redAccent, 
+                                        width: 4
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      _dragPosition.dx > 0 ? 'BANGER' : 'FLOP',
+                                      style: GoogleFonts.syne(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.w900,
+                                        color: _dragPosition.dx > 0 ? Colors.blueAccent : Colors.redAccent,
+                                      ),
+                                    ),
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  _dragPosition.dx > 0 ? 'PLAY' : 'SKIP',
-                                  style: GoogleFonts.syne(
-                                    fontSize: 36,
-                                    fontWeight: FontWeight.w900,
-                                    color: _dragPosition.dx > 0 ? Colors.blueAccent : Colors.redAccent,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Bet 0.01 MON',
+                                    style: GoogleFonts.dmSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      shadows: [const Shadow(blurRadius: 10, color: Colors.black)],
+                                    ),
                                   ),
-                                ),
+                                ],
                               ),
                             ),
                           ),
@@ -313,6 +395,40 @@ class _PredictionScreenState extends State<PredictionScreen> with TickerProvider
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProcessingOverlay() {
+    return Positioned.fill(
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.7),
+          borderRadius: BorderRadius.circular(32),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(color: Colors.blueAccent),
+            const SizedBox(height: 24),
+            Text(
+              'Signing Transaction...',
+              style: GoogleFonts.syne(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Confirming on Monad Testnet',
+              style: GoogleFonts.dmSans(
+                fontSize: 14,
+                color: AppTheme.textMuted,
+              ),
+            ),
+          ],
         ),
       ),
     );

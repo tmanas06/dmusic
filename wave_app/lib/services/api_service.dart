@@ -122,4 +122,17 @@ class ApiService {
       throw Exception('Playlist import failed. Please check the URL.');
     }
   }
+
+  /// Submit a prediction (Banger/Flop) with transaction hash
+  Future<void> submitPrediction(String trackId, bool isBanger, String txHash) async {
+    try {
+      await _dio.post('/predict', data: {
+        'track_id': trackId,
+        'prediction': isBanger ? 'banger' : 'flop',
+        'txHash': txHash,
+      });
+    } catch (e) {
+      if (kDebugMode) print('ApiService Predict Error: $e');
+    }
+  }
 }

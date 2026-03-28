@@ -11,6 +11,7 @@ import '../providers/navigation_provider.dart';
 import '../services/api_service.dart';
 import '../widgets/mood_card.dart';
 import '../widgets/track_card.dart';
+import 'profile_screen.dart';
 
 /// Home screen — main landing with greeting, mood cards, and trending tracks.
 class HomeScreen extends StatefulWidget {
@@ -152,8 +153,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        _buildBlob(AppTheme.accent.withValues(alpha: 0.1), 300, _blobController1, Alignment.topRight),
-        _buildBlob(AppTheme.accent2.withValues(alpha: 0.08), 250, _blobController2, Alignment.bottomLeft),
+        _buildBlob(AppTheme.accent.withOpacity(0.1), 300, _blobController1, Alignment.topRight),
+        _buildBlob(AppTheme.accent2.withOpacity(0.08), 250, _blobController2, Alignment.bottomLeft),
 
         RefreshIndicator(
           onRefresh: () async {
@@ -188,10 +189,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Container(
-                              width: 36, height: 36,
-                              decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
-                              child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 18),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                                );
+                              },
+                              child: Container(
+                                width: 36, height: 36,
+                                decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
+                                child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 18),
+                              ),
                             ),
                           ],
                         ),
@@ -292,13 +301,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                 decoration: BoxDecoration(
                                   color: AppTheme.surface, 
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: AppTheme.border.withValues(alpha: 0.3)),
+                                  border: Border.all(color: AppTheme.border.withOpacity(0.3)),
                                   gradient: LinearGradient(
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                     colors: [
                                       AppTheme.surface,
-                                      AppTheme.surface2.withValues(alpha: 0.4),
+                                      AppTheme.surface2.withOpacity(0.4),
                                     ],
                                   ),
                                 ),
@@ -338,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       Text('trending now', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
                       const SizedBox(width: 8),
-                      Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accent, boxShadow: [BoxShadow(color: AppTheme.accent.withValues(alpha: 0.5), blurRadius: 6)])),
+                      Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accent, boxShadow: [BoxShadow(color: AppTheme.accent.withOpacity(0.5), blurRadius: 6)])),
                     ],
                   ),
                 )),
@@ -382,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             scale: scale,
             child: Container(
               width: baseSize, height: baseSize,
-              decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color.withValues(alpha: 0.12), Colors.transparent])),
+              decoration: BoxDecoration(shape: BoxShape.circle, gradient: RadialGradient(colors: [color.withOpacity(0.12), Colors.transparent])),
             ),
           ),
         );

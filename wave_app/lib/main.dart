@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:firebase_core/firebase_core.dart'; // Added Firebase
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:provider/provider.dart';
 
@@ -10,17 +11,26 @@ import 'theme/app_theme.dart';
 import 'models/track.dart';
 import 'providers/player_provider.dart';
 import 'providers/library_provider.dart';
-import 'providers/navigation_provider.dart'; // Added navigation provider
+import 'providers/navigation_provider.dart';
+import 'providers/auth_provider.dart'; // Added AuthProvider
 import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
-import 'screens/playlist_import_screen.dart';
+import 'screens/playlist_import_screen.dart'; 
 import 'screens/prediction_screen.dart';
+import 'screens/login_screen.dart'; 
 import 'widgets/mini_player.dart';
 
 void main() {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+
+    // Initialize Firebase
+    try {
+      await Firebase.initializeApp();
+    } catch (e) {
+      debugPrint('[wave] Firebase initialization error: $e');
+    }
 
     // System UI styling
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -58,8 +68,9 @@ void main() {
     runApp(
       MultiProvider(
         providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider()), // New Auth Provider
           ChangeNotifierProvider(create: (_) => PlayerProvider()),
-          ChangeNotifierProvider(create: (_) => NavigationProvider()), // Global navigation
+          ChangeNotifierProvider(create: (_) => NavigationProvider()),
           ChangeNotifierProvider.value(value: libraryProvider),
         ],
         child: const WaveApp(),
@@ -76,11 +87,29 @@ class WaveApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
     return MaterialApp(
       title: 'wave.',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.dark,
-      home: const WaveShell(),
+      home: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 800),
+        switchInCurve: Curves.easeInOutCubic,
+        switchOutCurve: Curves.easeInOutCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.98, end: 1.0).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: auth.isAuthenticated
+            ? const WaveShell(key: ValueKey('shell'))
+            : const LoginScreen(key: ValueKey('login')),
+      ),
     );
   }
 }
@@ -94,12 +123,12 @@ class WaveShell extends StatefulWidget {
 }
 
 class _WaveShellState extends State<WaveShell> {
-  final List<Widget> _screens = const [
-    HomeScreen(),
-    SearchScreen(),
-    PredictionScreen(),
-    LibraryScreen(),
-    PlaylistImportScreen(),
+  final List<Widget> _screens = [
+    const HomeScreen(),
+    const SearchScreen(),
+    const PredictionScreen(),
+    const LibraryScreen(),
+    const PlaylistImportScreen(),
   ];
 
   @override
@@ -155,7 +184,7 @@ class _WaveShellState extends State<WaveShell> {
                     filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                     child: Container(
                       decoration: BoxDecoration(
-                        color: AppTheme.bg.withValues(alpha: 0.8),
+                        color: AppTheme.bg.withOpacity(0.8),
                         border: const Border(
                           top: BorderSide(color: AppTheme.border, width: 0.5),
                         ),
@@ -204,7 +233,7 @@ class _WaveShellState extends State<WaveShell> {
               size: 24,
               color: isActive
                   ? (color ?? AppTheme.textPrimary)
-                  : AppTheme.textMuted.withValues(alpha: 0.5),
+                  : AppTheme.textMuted.withOpacity(0.5),
             ),
             const SizedBox(height: 4),
             // Active dot

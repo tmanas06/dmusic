@@ -103,8 +103,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      AppTheme.bg.withValues(alpha: 0.4),
-                      AppTheme.bg.withValues(alpha: 0.8),
+                      AppTheme.bg.withOpacity(0.4),
+                      AppTheme.bg.withOpacity(0.8),
                       AppTheme.bg,
                     ],
                   ),
@@ -124,7 +124,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                   height: 4,
                   margin: const EdgeInsets.only(top: 12),
                   decoration: BoxDecoration(
-                    color: AppTheme.textMuted.withValues(alpha: 0.3),
+                    color: AppTheme.textMuted.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -180,7 +180,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                       borderRadius: BorderRadius.circular(AppTheme.artworkRadius),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.accent.withValues(alpha: 0.2),
+                          color: AppTheme.accent.withOpacity(0.2),
                           blurRadius: 50,
                           spreadRadius: 5,
                         ),
@@ -200,8 +200,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
-                                      AppTheme.accent.withValues(alpha: 0.2),
-                                      AppTheme.accent2.withValues(alpha: 0.2),
+                                      AppTheme.accent.withOpacity(0.2),
+                                      AppTheme.accent2.withOpacity(0.2),
                                     ],
                                   ),
                                 ),
@@ -213,8 +213,8 @@ class _PlayerScreenState extends State<PlayerScreen>
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    AppTheme.accent.withValues(alpha: 0.2),
-                                    AppTheme.accent2.withValues(alpha: 0.2),
+                                    AppTheme.accent.withOpacity(0.2),
+                                    AppTheme.accent2.withOpacity(0.2),
                                   ],
                                 ),
                               ),
@@ -276,12 +276,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                             data: SliderThemeData(
                               trackHeight: 4,
                               activeTrackColor: AppTheme.accent,
-                              inactiveTrackColor: AppTheme.surface2.withValues(alpha: 0.5),
+                              inactiveTrackColor: AppTheme.surface2.withOpacity(0.5),
                               thumbColor: Colors.white,
                               thumbShape: const RoundSliderThumbShape(
                                 enabledThumbRadius: 6,
                               ),
-                              overlayColor: AppTheme.accent.withValues(alpha: 0.1),
+                              overlayColor: AppTheme.accent.withOpacity(0.1),
                               overlayShape: const RoundSliderOverlayShape(
                                 overlayRadius: 16,
                               ),
@@ -361,7 +361,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                           color: AppTheme.accent,
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.accent.withValues(alpha: 0.4),
+                              color: AppTheme.accent.withOpacity(0.4),
                               blurRadius: 25,
                               spreadRadius: 3,
                             ),
@@ -471,7 +471,7 @@ class _PlayerScreenState extends State<PlayerScreen>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isDownloaded
-              ? AppTheme.accent.withValues(alpha: 0.2)
+              ? AppTheme.accent.withOpacity(0.2)
               : Colors.transparent,
           border: Border.all(
             color: isDownloaded ? AppTheme.accent : AppTheme.textMuted,

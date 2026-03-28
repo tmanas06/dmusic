@@ -241,7 +241,7 @@ class _EqualizerScreenState extends State<EqualizerScreen>
                     '0 dB',
                     style: GoogleFonts.dmSans(
                       fontSize: 10,
-                      color: AppTheme.textMuted.withValues(alpha: 0.5),
+                      color: AppTheme.textMuted.withOpacity(0.5),
                     ),
                   ),
                   Text(

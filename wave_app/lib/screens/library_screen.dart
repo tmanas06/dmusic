@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import '../models/track.dart';
 import '../providers/library_provider.dart';
 import '../providers/player_provider.dart';
+import 'profile_screen.dart';
 
 /// Library screen — shows downloaded tracks with filter chips.
 class LibraryScreen extends StatefulWidget {
@@ -51,27 +52,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         color: AppTheme.textMuted,
                       ),
                     ),
-                    if (tracks.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () => library.clearLibrary(),
-                        child: Text(
-                          'Clear All',
-                          style: GoogleFonts.dmSans(
-                            fontSize: 11,
-                            color: AppTheme.accent2.withValues(alpha: 0.8),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                        );
+                      },
+                      child: Container(
+                        width: 32, height: 32,
+                        decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
+                        child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 16),
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 16),
-
           // Filter pills
           SizedBox(
             height: 34,
@@ -173,8 +173,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.accent.withValues(alpha: 0.1),
-                          AppTheme.accent2.withValues(alpha: 0.1),
+                          AppTheme.accent.withOpacity(0.1),
+                          AppTheme.accent2.withOpacity(0.1),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -207,9 +207,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.5),
+                        color: Colors.black.withOpacity(0.5),
                         shape: BoxShape.circle,
-                        border: Border.all(color: AppTheme.border.withValues(alpha: 0.2)),
+                        border: Border.all(color: AppTheme.border.withOpacity(0.2)),
                       ),
                       child: const Icon(
                         Icons.delete_outline_rounded,
@@ -255,7 +255,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           Icon(
             Icons.library_music_rounded,
             size: 64,
-            color: AppTheme.textMuted.withValues(alpha: 0.3),
+            color: AppTheme.textMuted.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -272,7 +272,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
             textAlign: TextAlign.center,
             style: GoogleFonts.dmSans(
               fontSize: 13,
-              color: AppTheme.textMuted.withValues(alpha: 0.6),
+              color: AppTheme.textMuted.withOpacity(0.6),
             ),
           ),
         ],
@@ -297,7 +297,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(top: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.textMuted.withValues(alpha: 0.3),
+                  color: AppTheme.textMuted.withOpacity(0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),

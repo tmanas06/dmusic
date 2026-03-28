@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "249527781756",
+    "project_id": "gps-proj-a0748",
+    "storage_bucket": "gps-proj-a0748.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249527781756:android:acafee32393e53b6097cf9",
+        "android_client_info": {
+          "package_name": "com.gpsrunner.web3"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249527781756-oggpsbt5q42ccs7hcrok8gd0ffp2cr9v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gpsrunner.web3",
+            "certificate_hash": "82c0e26f42129dadcf4a5e8ed80908092702f227"
+          }
+        },
+        {
+          "client_id": "249527781756-9sk7s6cddihb9bf7351vkmdv5rarmucg.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuwKUc8HXsiyV6iOwQpWN0TdYAQvw_NK0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249527781756-9sk7s6cddihb9bf7351vkmdv5rarmucg.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

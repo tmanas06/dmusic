@@ -87,8 +87,8 @@ class _TrackCardState extends State<TrackCard>
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          AppTheme.accent.withValues(alpha: 0.2),
-                          AppTheme.accent2.withValues(alpha: 0.2),
+                          AppTheme.accent.withOpacity(0.2),
+                          AppTheme.accent2.withOpacity(0.2),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -181,7 +181,7 @@ class _TrackCardState extends State<TrackCard>
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(AppTheme.buttonRadius),
           color: isDownloaded
-              ? AppTheme.accent.withValues(alpha: 0.2)
+              ? AppTheme.accent.withOpacity(0.2)
               : Colors.transparent,
           border: Border.all(
             color: AppTheme.accent.withValues(alpha: isDownloaded ? 0.5 : 0.12),

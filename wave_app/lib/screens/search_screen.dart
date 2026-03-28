@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../models/track.dart';
 import '../services/api_service.dart';
+import 'profile_screen.dart';
 import '../providers/player_provider.dart';
 import '../widgets/track_card.dart';
 import 'player_screen.dart';
@@ -94,13 +95,31 @@ class _SearchScreenState extends State<SearchScreen> {
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: Text(
-              'search',
-              style: GoogleFonts.syne(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'search',
+                  style: GoogleFonts.syne(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const ProfileScreen()),
+                    );
+                  },
+                  child: Container(
+                    width: 36, height: 36,
+                    decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
+                    child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 18),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
@@ -115,13 +134,13 @@ class _SearchScreenState extends State<SearchScreen> {
                 borderRadius: BorderRadius.circular(AppTheme.searchRadius),
                 border: Border.all(
                   color: _focusNode.hasFocus
-                      ? AppTheme.accent.withValues(alpha: 0.3)
+                      ? AppTheme.accent.withOpacity(0.3)
                       : AppTheme.border,
                 ),
                 boxShadow: _focusNode.hasFocus
                     ? [
                         BoxShadow(
-                          color: AppTheme.accent.withValues(alpha: 0.06),
+                          color: AppTheme.accent.withOpacity(0.06),
                           blurRadius: 16,
                           spreadRadius: 2,
                         ),
@@ -139,12 +158,12 @@ class _SearchScreenState extends State<SearchScreen> {
                 decoration: InputDecoration(
                   hintText: 'search any song, artist...',
                   hintStyle: GoogleFonts.dmSans(
-                    color: AppTheme.textMuted.withValues(alpha: 0.5),
+                    color: AppTheme.textMuted.withOpacity(0.5),
                     fontSize: 15,
                   ),
                   prefixIcon: Icon(
                     Icons.search_rounded,
-                    color: AppTheme.textMuted.withValues(alpha: 0.4),
+                    color: AppTheme.textMuted.withOpacity(0.4),
                     size: 20,
                   ),
                   suffixIcon: _searchController.text.isNotEmpty
@@ -220,7 +239,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Icon(
             Icons.search_rounded,
             size: 64,
-            color: AppTheme.textMuted.withValues(alpha: 0.3),
+            color: AppTheme.textMuted.withOpacity(0.3),
           ),
           const SizedBox(height: 16),
           Text(
@@ -245,7 +264,7 @@ class _SearchScreenState extends State<SearchScreen> {
           Icon(
             Icons.music_off_rounded,
             size: 48,
-            color: AppTheme.textMuted.withValues(alpha: 0.3),
+            color: AppTheme.textMuted.withOpacity(0.3),
           ),
           const SizedBox(height: 12),
           Text(
@@ -261,7 +280,7 @@ class _SearchScreenState extends State<SearchScreen> {
             'try a different search term',
             style: GoogleFonts.dmSans(
               fontSize: 13,
-              color: AppTheme.textMuted.withValues(alpha: 0.6),
+              color: AppTheme.textMuted.withOpacity(0.6),
             ),
           ),
         ],

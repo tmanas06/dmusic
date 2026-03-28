@@ -70,7 +70,7 @@ class _MoodCardState extends State<MoodCard>
             ),
             boxShadow: [
               BoxShadow(
-                color: widget.gradientColors[0].withValues(alpha: 0.3),
+                color: widget.gradientColors[0].withOpacity(0.3),
                 blurRadius: 16,
                 offset: const Offset(0, 8),
               ),
@@ -130,7 +130,7 @@ class _MoodCardState extends State<MoodCard>
                             color: AppTheme.textPrimary,
                             shadows: [
                               Shadow(
-                                color: Colors.black.withValues(alpha: 0.5),
+                                color: Colors.black.withOpacity(0.5),
                                 blurRadius: 4,
                                 offset: const Offset(0, 1),
                               ),

@@ -27,8 +27,8 @@ class FrequencyCurvePainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          curveColor.withValues(alpha: 0.3),
-          curveColor.withValues(alpha: 0.0),
+          curveColor.withOpacity(0.3),
+          curveColor.withOpacity(0.0),
         ],
       ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
       ..style = PaintingStyle.fill;
@@ -84,7 +84,7 @@ class FrequencyCurvePainter extends CustomPainter {
         pt,
         5,
         Paint()
-          ..color = curveColor.withValues(alpha: 0.2)
+          ..color = curveColor.withOpacity(0.2)
           ..style = PaintingStyle.fill,
       );
     }
@@ -106,7 +106,7 @@ class FrequencyCurvePainter extends CustomPainter {
       Offset(0, midY),
       Offset(size.width, midY),
       Paint()
-        ..color = AppTheme.textMuted.withValues(alpha: 0.3)
+        ..color = AppTheme.textMuted.withOpacity(0.3)
         ..strokeWidth = 1,
     );
   }
