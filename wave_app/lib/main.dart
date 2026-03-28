@@ -15,6 +15,7 @@ import 'screens/home_screen.dart';
 import 'screens/search_screen.dart';
 import 'screens/library_screen.dart';
 import 'screens/playlist_import_screen.dart';
+import 'screens/prediction_screen.dart';
 import 'widgets/mini_player.dart';
 
 void main() {
@@ -96,6 +97,7 @@ class _WaveShellState extends State<WaveShell> {
   final List<Widget> _screens = const [
     HomeScreen(),
     SearchScreen(),
+    PredictionScreen(),
     LibraryScreen(),
     PlaylistImportScreen(),
   ];
@@ -167,8 +169,9 @@ class _WaveShellState extends State<WaveShell> {
                             children: [
                               _buildNavItem(0, Icons.home_rounded, 'home'),
                               _buildNavItem(1, Icons.search_rounded, 'search'),
-                              _buildNavItem(2, Icons.library_music_rounded, 'library'),
-                              _buildNavItem(3, Icons.share_rounded, 'import'),
+                              _buildNavItem(2, Icons.auto_awesome_rounded, 'prediction', color: Colors.blueAccent.shade200),
+                              _buildNavItem(3, Icons.library_music_rounded, 'library'),
+                              _buildNavItem(4, Icons.share_rounded, 'import'),
                             ],
                           ),
                         ),
@@ -184,7 +187,7 @@ class _WaveShellState extends State<WaveShell> {
     );
   }
 
-  Widget _buildNavItem(int index, IconData icon, String label) {
+  Widget _buildNavItem(int index, IconData icon, String label, {Color? color}) {
     final navigation = context.read<NavigationProvider>();
     final isActive = navigation.currentIndex == index;
 
@@ -200,7 +203,7 @@ class _WaveShellState extends State<WaveShell> {
               icon,
               size: 24,
               color: isActive
-                  ? AppTheme.textPrimary
+                  ? (color ?? AppTheme.textPrimary)
                   : AppTheme.textMuted.withValues(alpha: 0.5),
             ),
             const SizedBox(height: 4),

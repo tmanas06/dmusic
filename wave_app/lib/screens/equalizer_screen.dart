@@ -3,8 +3,10 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../widgets/eq_slider.dart';
 import '../widgets/frequency_curve_painter.dart';
+import '../widgets/rotary_dial.dart';
 
 /// Equalizer screen — 10-band EQ with presets and frequency curve visualization.
+/// Now includes Super Bass and Super Treble dials.
 class EqualizerScreen extends StatefulWidget {
   const EqualizerScreen({super.key});
 
@@ -16,6 +18,8 @@ class _EqualizerScreenState extends State<EqualizerScreen>
     with SingleTickerProviderStateMixin {
   // 10 bands: 31Hz, 63Hz, 125Hz, 250Hz, 500Hz, 1kHz, 2kHz, 4kHz, 8kHz, 16kHz
   List<double> bands = List.filled(10, 0.0);
+  double _superBass = 0.0;
+  double _superTreble = 0.0;
   String _activePreset = 'Flat';
 
   static const List<String> freqLabels = [
@@ -60,13 +64,17 @@ class _EqualizerScreenState extends State<EqualizerScreen>
       setState(() {
         for (int i = 0; i < 10; i++) {
           bands[i] = startBands[i] +
-              (targetBands[i] - startBands[i]) * _presetAnimController.value;
+               (targetBands[i] - startBands[i]) * _presetAnimController.value;
         }
       });
     });
     _presetAnimController.forward();
 
-    setState(() => _activePreset = name);
+    setState(() {
+      _activePreset = name;
+      _superBass = 0; // Reset super knobs on preset change
+      _superTreble = 0;
+    });
   }
 
   void _setBand(int index, double value) {
@@ -74,7 +82,29 @@ class _EqualizerScreenState extends State<EqualizerScreen>
       bands[index] = value;
       _activePreset = 'Custom';
     });
-    // In a real implementation, call EqualizerFlutter.setBandLevel(index, value.toInt());
+  }
+
+  // Super Bass logic: exponentially boosts low frequencies (31Hz, 63Hz, 125Hz)
+  void _setSuperBass(double value) {
+    setState(() {
+      _superBass = value;
+      final boost = value * 15; // Max 15dB boost
+      bands[0] = (presets['Flat']![0] + boost).clamp(-15, 15).toDouble();
+      bands[1] = (presets['Flat']![1] + boost * 0.8).clamp(-15, 15).toDouble();
+      bands[2] = (presets['Flat']![2] + boost * 0.5).clamp(-15, 15).toDouble();
+      _activePreset = 'Custom';
+    });
+  }
+
+  // Super Treble logic: boosts high frequencies (8kHz, 16kHz)
+  void _setSuperTreble(double value) {
+    setState(() {
+      _superTreble = value;
+      final boost = value * 15;
+      bands[8] = (presets['Flat']![8] + boost * 0.8).clamp(-15, 15).toDouble();
+      bands[9] = (presets['Flat']![9] + boost).clamp(-15, 15).toDouble();
+      _activePreset = 'Custom';
+    });
   }
 
   @override
@@ -107,6 +137,31 @@ class _EqualizerScreenState extends State<EqualizerScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
+
+              // Super Knobs Section
+              Row(
+                children: [
+                   Expanded(
+                     child: RotaryDial(
+                       label: 'SUPER BASS',
+                       value: _superBass,
+                       onChanged: _setSuperBass,
+                       activeColor: Colors.orangeAccent,
+                     ),
+                   ),
+                   const SizedBox(width: 32),
+                   Expanded(
+                     child: RotaryDial(
+                       label: 'SUPER TREBLE',
+                       value: _superTreble,
+                       onChanged: _setSuperTreble,
+                       activeColor: Colors.blueAccent,
+                     ),
+                   ),
+                ],
+              ),
+
+              const SizedBox(height: 48),
 
               // Preset pills
               SizedBox(
@@ -221,7 +276,13 @@ class _EqualizerScreenState extends State<EqualizerScreen>
               // Reset button
               Center(
                 child: GestureDetector(
-                  onTap: () => _applyPreset('Flat'),
+                  onTap: () {
+                    _applyPreset('Flat');
+                    setState(() {
+                      _superBass = 0;
+                      _superTreble = 0;
+                    });
+                  },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 24, vertical: 12),
