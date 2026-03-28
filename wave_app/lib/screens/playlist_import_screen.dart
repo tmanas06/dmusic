@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../providers/library_provider.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../providers/player_provider.dart';
 import '../widgets/track_card.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import '../models/track.dart';
 
 class PlaylistImportScreen extends StatefulWidget {
@@ -32,10 +32,19 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
   }
 
   Future<void> _initHistory() async {
-    _historyBox = await Hive.openBox<Map>('playlist_history_v2');
+    // Open a fresh box for the unified history logic
+    _historyBox = await Hive.openBox<Map>('playlist_history_unified');
+    _loadHistoryData();
+  }
+
+  void _loadHistoryData() {
+    if (_historyBox == null) return;
     if (mounted) {
       setState(() {
-        _pastSearches = _historyBox!.values.map((e) => Map<String, dynamic>.from(e)).toList().reversed.toList();
+        // Sort by timestamp if available, otherwise just use values
+        final values = _historyBox!.values.map((e) => Map<String, dynamic>.from(e)).toList();
+        values.sort((a, b) => (b['timestamp'] as int? ?? 0).compareTo(a['timestamp'] as int? ?? 0));
+        _pastSearches = values;
       });
     }
   }
@@ -43,7 +52,13 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
   void _saveSearch(String url, List<Track> tracks) {
     if (url.isEmpty || _historyBox == null || tracks.isEmpty) return;
     
-    final String title = "Playlist"; // Default
+    // Try to find a meaningful title from the tracks or first track
+    String title = "Imported Playlist";
+    if (tracks.isNotEmpty) {
+      // Logic: if many tracks have the same album, use it? Or just 'Playlist'
+      // For now, let's just stick to 'Playlist' until we have playlist metadata from API
+    }
+    
     final String imageUrl = tracks.first.artworkUrl;
 
     final Map<String, dynamic> entry = {
@@ -51,23 +66,14 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
       'title': title,
       'imageUrl': imageUrl,
       'trackCount': tracks.length,
+      'timestamp': DateTime.now().millisecondsSinceEpoch,
     };
 
-    // Remove if already exists with same url
-    _pastSearches.removeWhere((element) => element['url'] == url);
+    // Save with URL as key to prevent duplicates
+    _historyBox!.put(url, entry);
+    _historyBox!.flush(); // Force persist
     
-    _pastSearches.insert(0, entry);
-    
-    if (_pastSearches.length > 10) {
-      _pastSearches = _pastSearches.sublist(0, 10);
-    }
-
-    _historyBox!.clear();
-    for (var i = _pastSearches.length - 1; i >= 0; i--) {
-      _historyBox!.add(_pastSearches[i]);
-    }
-
-    setState(() {});
+    _loadHistoryData();
   }
 
   void _clearHistory() {
@@ -89,134 +95,136 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Recent Searches',
+                'Past Searched',
                 style: GoogleFonts.syne(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.textPrimary,
                 ),
               ),
-              TextButton(
-                onPressed: _clearHistory,
+              GestureDetector(
+                onTap: _clearHistory,
                 child: Text(
-                  'clear',
+                  'clear all',
                   style: GoogleFonts.dmSans(
                     fontSize: 12,
-                    color: AppTheme.textMuted,
+                    color: AppTheme.accent,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: 180,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            itemCount: _pastSearches.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 14),
-            itemBuilder: (context, index) {
-              final entry = _pastSearches[index];
-              final url = entry['url'] as String;
-              final title = entry['title'] as String;
-              final imageUrl = entry['imageUrl'] as String;
-              final trackCount = entry['trackCount'] as int? ?? 0;
-              
-              return GestureDetector(
-                onTap: () {
-                  _controller.text = url;
-                  _importPlaylist();
-                },
-                child: Container(
-                  width: 140,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppTheme.border.withValues(alpha: 0.5)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                          child: Stack(
-                            children: [
-                              Image.network(
-                                imageUrl,
-                                width: double.infinity,
-                                height: double.infinity,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
-                                  color: AppTheme.surface2,
-                                  child: const Icon(Icons.music_note_rounded, color: AppTheme.textMuted),
-                                ),
-                              ),
-                              Positioned(
-                                bottom: 8,
-                                right: 8,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.7),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.playlist_play_rounded, size: 12, color: Colors.white),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        '$trackCount',
-                                        style: GoogleFonts.dmSans(
-                                          fontSize: 10,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 0.82,
+          ),
+          itemCount: _pastSearches.length,
+          itemBuilder: (context, index) {
+            final entry = _pastSearches[index];
+            final url = entry['url'] as String;
+            final title = entry['title'] as String;
+            final imageUrl = entry['imageUrl'] as String;
+            final trackCount = entry['trackCount'] as int? ?? 0;
+            
+            return GestureDetector(
+              onTap: () {
+                _controller.text = url;
+                _importPlaylist();
+              },
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppTheme.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.border.withValues(alpha: 0.5)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Square portion
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                        child: Stack(
                           children: [
-                            Text(
-                              title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.textPrimary,
+                            Image.network(
+                              imageUrl,
+                              width: double.infinity,
+                              height: double.infinity,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                color: AppTheme.surface2,
+                                child: const Icon(Icons.music_note_rounded, color: AppTheme.textMuted),
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              url.length > 20 ? '${url.substring(0, 20)}...' : url,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: GoogleFonts.dmSans(
-                                fontSize: 11,
-                                color: AppTheme.textMuted,
+                            // Gradient overlay for bottom metadata
+                            Positioned.fill(
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.4)],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.8),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.playlist_play_rounded, size: 12, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      '$trackCount',
+                                      style: GoogleFonts.dmSans(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.dmSans(fontSize: 13, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Search again',
+                            style: GoogleFonts.dmSans(fontSize: 11, color: AppTheme.accent),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -238,21 +246,21 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
         _saveSearch(_controller.text, tracks);
       }
 
-      setState(() {
-        _importedTracks = tracks;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _importedTracks = tracks;
+          _isLoading = false;
+        });
+      }
 
-      if (tracks.isEmpty) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No tracks found in this playlist.')),
-          );
-        }
+      if (tracks.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('No tracks found in this playlist.')),
+        );
       }
     } catch (e) {
-      setState(() => _isLoading = false);
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(e.toString())),
         );
@@ -271,20 +279,8 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
     final library = context.read<LibraryProvider>();
     int count = 0;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: AppTheme.surface,
-        duration: const Duration(seconds: 1),
-        content: Text(
-          'starting sequential download...',
-          style: GoogleFonts.dmSans(color: AppTheme.textPrimary),
-        ),
-      ),
-    );
-
     for (var track in _importedTracks) {
       if (_stopBatchRequested) break;
-
       if (!library.isDownloaded(track.id) && !library.isDownloading(track.id)) {
         await library.downloadTrack(track);
         count++;
@@ -292,23 +288,9 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
     }
 
     if (mounted) {
-      setState(() {
-        _isBatchDownloading = false;
-      });
-
+      setState(() => _isBatchDownloading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: _stopBatchRequested ? AppTheme.surface : AppTheme.accent,
-          content: Text(
-            _stopBatchRequested 
-              ? 'stopped after $count tracks'
-              : (count > 0 ? 'completed $count downloads' : 'all tracks already in library'),
-            style: GoogleFonts.dmSans(
-              color: _stopBatchRequested ? AppTheme.textPrimary : Colors.black, 
-              fontWeight: FontWeight.bold
-            ),
-          ),
-        ),
+        SnackBar(content: Text(count > 0 ? 'Queued $count downloads' : 'All tracks already in library')),
       );
     }
   }
@@ -326,11 +308,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
         elevation: 0,
         title: Text(
           'import playlist',
-          style: GoogleFonts.syne(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-          ),
+          style: GoogleFonts.syne(fontSize: 20, fontWeight: FontWeight.w700, color: AppTheme.textPrimary),
         ),
         centerTitle: true,
       ),
@@ -341,13 +319,7 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'YouTube Playlist Link',
-                  style: GoogleFonts.dmSans(
-                    fontSize: 14,
-                    color: AppTheme.textMuted,
-                  ),
-                ),
+                Text('YouTube Playlist Link', style: GoogleFonts.dmSans(fontSize: 14, color: AppTheme.textMuted)),
                 const SizedBox(height: 12),
                 Container(
                   decoration: BoxDecoration(
@@ -375,60 +347,23 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
             ),
           ),
           if (_isLoading)
-            const Expanded(
-              child: Center(
-                child: CircularProgressIndicator(color: AppTheme.accent),
-              ),
-            )
+            const Expanded(child: Center(child: CircularProgressIndicator(color: AppTheme.accent)))
           else if (_importedTracks.isNotEmpty)
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Expanded(
-                          child: Text(
-                            '${_importedTracks.length} tracks found',
-                            style: GoogleFonts.syne(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.textPrimary,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
+                        Text('${_importedTracks.length} tracks', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
                         Row(
-                          mainAxisSize: MainAxisSize.min,
                           children: [
                             TextButton.icon(
                               onPressed: _isBatchDownloading ? _stopBatch : _downloadAll,
-                              icon: Icon(
-                                _isBatchDownloading ? Icons.stop_rounded : Icons.download_rounded,
-                                color: _isBatchDownloading ? AppTheme.accent2 : AppTheme.textMuted,
-                                size: 20,
-                              ),
-                              label: Text(
-                                _isBatchDownloading ? 'Stop' : 'Download',
-                                style: GoogleFonts.dmSans(
-                                  color: _isBatchDownloading ? AppTheme.accent2 : AppTheme.textMuted,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 4),
-                            TextButton.icon(
-                              onPressed: () {
-                                context.read<PlayerProvider>().playQueue(_importedTracks, 0);
-                              },
-                              icon: const Icon(Icons.play_arrow_rounded, color: AppTheme.accent),
-                              label: Text(
-                                'Play All',
-                                style: GoogleFonts.dmSans(color: AppTheme.accent, fontWeight: FontWeight.bold),
-                              ),
+                              icon: Icon(_isBatchDownloading ? Icons.stop_rounded : Icons.download_rounded, color: _isBatchDownloading ? Colors.red : AppTheme.accent, size: 20),
+                              label: Text(_isBatchDownloading ? 'Stop' : 'Get All', style: GoogleFonts.dmSans(color: _isBatchDownloading ? Colors.red : AppTheme.accent)),
                             ),
                           ],
                         ),
@@ -439,15 +374,11 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                     child: ListView.builder(
                       physics: const BouncingScrollPhysics(),
                       itemCount: _importedTracks.length,
-                      itemBuilder: (context, index) {
-                        return TrackCard(
-                          track: _importedTracks[index],
-                          index: index,
-                          onTap: () {
-                            context.read<PlayerProvider>().playQueue(_importedTracks, index);
-                          },
-                        );
-                      },
+                      itemBuilder: (context, index) => TrackCard(
+                        track: _importedTracks[index],
+                        index: index,
+                        onTap: () => context.read<PlayerProvider>().playQueue(_importedTracks, index),
+                      ),
                     ),
                   ),
                 ],
@@ -460,13 +391,11 @@ class _PlaylistImportScreenState extends State<PlaylistImportScreen> {
                 child: Column(
                   children: [
                     _buildRecentSearches(),
-                    const SizedBox(height: 40),
-                    Icon(Icons.playlist_add_rounded, size: 64, color: AppTheme.textMuted.withValues(alpha: 0.2)),
+                    const SizedBox(height: 60),
+                    Icon(Icons.playlist_add_rounded, size: 64, color: AppTheme.textMuted.withValues(alpha: 0.1)),
                     const SizedBox(height: 16),
-                    Text(
-                      'Search for a playlist to start listening',
-                      style: GoogleFonts.dmSans(color: AppTheme.textMuted),
-                    ),
+                    Text('Search for a playlist to start listening', style: GoogleFonts.dmSans(color: AppTheme.textMuted)),
+                    const SizedBox(height: 100),
                   ],
                 ),
               ),

@@ -155,223 +155,221 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _buildBlob(AppTheme.accent.withValues(alpha: 0.1), 300, _blobController1, Alignment.topRight),
         _buildBlob(AppTheme.accent2.withValues(alpha: 0.08), 250, _blobController2, Alignment.bottomLeft),
 
-        CustomScrollView(
-          physics: const BouncingScrollPhysics(),
-          slivers: [
-            // Header
-            SliverToBoxAdapter(
-              child: _buildStaggeredSection(0, SafeArea(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('wave.', style: GoogleFonts.syne(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.accent)),
-                      Row(
-                        children: [
-                          RotationTransition(
-                            turns: _diceController,
-                            child: IconButton(
-                              onPressed: _shufflePlay,
-                              icon: const Icon(Icons.casino_rounded, color: AppTheme.accent),
-                              tooltip: 'Dice Shuffle',
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 36, height: 36,
-                            decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
-                            child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 18),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              )),
-            ),
-
-            // Filter Chips
-            SliverToBoxAdapter(
-              child: _buildStaggeredSection(1, Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: SizedBox(
-                  height: 36,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    children: [
-                      _buildFilterChip('Relax', true),
-                      _buildFilterChip('Energy', false),
-                      _buildFilterChip('Focus', false),
-                      _buildFilterChip('Gym', false),
-                      _buildFilterChip('Party', false),
-                    ],
-                  ),
-                ),
-              )),
-            ),
-
-            // Greeting
-            SliverToBoxAdapter(
-              child: _buildStaggeredSection(2, Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_getGreeting(), style: GoogleFonts.dmSans(fontSize: 14, color: AppTheme.textMuted)),
-                    const SizedBox(height: 4),
-                    RichText(
-                      text: TextSpan(
-                        children: [
-                          TextSpan(text: "what's the ", style: GoogleFonts.syne(fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
-                          TextSpan(text: "vibe", style: GoogleFonts.dmSans(fontSize: 26, fontWeight: FontWeight.w300, fontStyle: FontStyle.italic, color: AppTheme.accent)),
-                          TextSpan(text: " ?", style: GoogleFonts.syne(fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              )),
-            ),
-
-            // Moods
-            SliverToBoxAdapter(
-              child: _buildStaggeredSection(3, Padding(
-                padding: const EdgeInsets.only(top: 24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text('moods', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      height: 140,
-                      child: _isMoodsLoading 
-                        ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent))
-                        : ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: _moods.length,
-                            separatorBuilder: (_, __) => const SizedBox(width: 12),
-                            itemBuilder: (context, index) {
-                              final mood = _moods[index];
-                              final List<Color> colors = (mood['colors'] as List)
-                                  .map((c) => Color(int.parse(c.toString().replaceAll('#', '0xFF'))))
-                                  .toList();
-                              return MoodCard(
-                                emoji: mood['emoji'] as String,
-                                title: mood['title'] as String,
-                                count: "${Random().nextInt(50) + 10}+ tracks",
-                                imageUrl: mood['image'] as String,
-                                gradientColors: colors,
-                                onTap: () => context.read<NavigationProvider>().triggerSearch(mood['title'] as String),
-                              );
-                            },
-                          ),
-                    ),
-                  ],
-                ),
-              )),
-            ),
-
-            // Quick Picks
-            if (!_isLoading && _trendingTracks.length >= 4)
+        RefreshIndicator(
+          onRefresh: () async {
+            await Future.wait([
+              _loadTrendingTracks(),
+              _loadMoods(),
+            ]);
+          },
+          color: AppTheme.accent,
+          backgroundColor: AppTheme.surface,
+          displacement: 20,
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // Header
               SliverToBoxAdapter(
-                child: _buildStaggeredSection(4, Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+                child: _buildStaggeredSection(0, SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('wave.', style: GoogleFonts.syne(fontSize: 28, fontWeight: FontWeight.w800, color: AppTheme.accent)),
+                        Row(
+                          children: [
+                            RotationTransition(
+                              turns: _diceController,
+                              child: IconButton(
+                                onPressed: _shufflePlay,
+                                icon: const Icon(Icons.casino_rounded, color: AppTheme.accent),
+                                tooltip: 'Dice Shuffle',
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 36, height: 36,
+                              decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.surface2, border: Border.all(color: AppTheme.border)),
+                              child: const Icon(Icons.person_rounded, color: AppTheme.textMuted, size: 18),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                )),
+              ),
+
+              // Greeting
+              SliverToBoxAdapter(
+                child: _buildStaggeredSection(1, Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('quick picks', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-                      const SizedBox(height: 16),
-                      GridView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.2,
+                      Text(_getGreeting(), style: GoogleFonts.dmSans(fontSize: 14, color: AppTheme.textMuted)),
+                      const SizedBox(height: 4),
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(text: "what's the ", style: GoogleFonts.syne(fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                            TextSpan(text: "vibe", style: GoogleFonts.dmSans(fontSize: 26, fontWeight: FontWeight.w300, fontStyle: FontStyle.italic, color: AppTheme.accent)),
+                            TextSpan(text: " ?", style: GoogleFonts.syne(fontSize: 26, fontWeight: FontWeight.w800, color: AppTheme.textPrimary)),
+                          ],
                         ),
-                        itemCount: 4,
-                        itemBuilder: (context, index) {
-                          final track = _trendingTracks[index];
-                          return GestureDetector(
-                            onTap: () => context.read<PlayerProvider>().playQueue(_trendingTracks, index),
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppTheme.border.withValues(alpha: 0.3))),
-                              child: Row(
-                                children: [
-                                  ClipRRect(borderRadius: BorderRadius.circular(4), child: Image.network(track.artworkUrl, width: 44, height: 44, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Container(width: 44, height: 44, color: AppTheme.surface2, child: const Icon(Icons.music_note_rounded, color: AppTheme.textMuted, size: 20)))),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                    Text(track.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                                    Text(track.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
-                                  ])),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
                       ),
                     ],
                   ),
                 )),
               ),
 
-            // Trending Header
-            SliverToBoxAdapter(
-              child: _buildStaggeredSection(5, Padding(
-                padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-                child: Row(
-                  children: [
-                    Text('trending now', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
-                    const SizedBox(width: 8),
-                    Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accent, boxShadow: [BoxShadow(color: AppTheme.accent.withValues(alpha: 0.5), blurRadius: 6)])),
-                  ],
-                ),
-              )),
-            ),
-
-            // Trending List
-            if (_isLoading)
-              const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: AppTheme.accent))))
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    if (index >= _trendingTracks.length) return null;
-                    return _buildStaggeredSection(6 + index.clamp(0, 5), TrackCard(
-                      track: _trendingTracks[index],
-                      index: index,
-                      onTap: () => context.read<PlayerProvider>().playQueue(_trendingTracks, index),
-                    ));
-                  },
-                  childCount: _trendingTracks.length,
-                ),
+              // Moods
+              SliverToBoxAdapter(
+                child: _buildStaggeredSection(3, Padding(
+                  padding: const EdgeInsets.only(top: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Text('moods', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 140,
+                        child: _isMoodsLoading 
+                          ? const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent))
+                          : ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              itemCount: _moods.length,
+                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              itemBuilder: (context, index) {
+                                final mood = _moods[index];
+                                final List<Color> colors = (mood['colors'] as List)
+                                    .map((c) => Color(int.parse(c.toString().replaceAll('#', '0xFF'))))
+                                    .toList();
+                                return MoodCard(
+                                  emoji: mood['emoji'] as String,
+                                  title: mood['title'] as String,
+                                  count: "${Random().nextInt(50) + 10}+ tracks",
+                                  imageUrl: mood['image'] as String,
+                                  gradientColors: colors,
+                                  onTap: () => context.read<NavigationProvider>().triggerSearch(mood['title'] as String),
+                                );
+                              },
+                            ),
+                      ),
+                    ],
+                  ),
+                )),
               ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 160)),
-          ],
+              // Quick Picks
+              if (!_isLoading && _trendingTracks.length >= 4)
+                SliverToBoxAdapter(
+                  child: _buildStaggeredSection(4, Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('quick picks', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                        const SizedBox(height: 16),
+                        GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2, mainAxisSpacing: 12, crossAxisSpacing: 12, childAspectRatio: 2.2,
+                          ),
+                          itemCount: 4,
+                          itemBuilder: (context, index) {
+                            final track = _trendingTracks[index];
+                            return GestureDetector(
+                              onTap: () => context.read<PlayerProvider>().playQueue(_trendingTracks, index),
+                              child: Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.surface, 
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(color: AppTheme.border.withValues(alpha: 0.3)),
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [
+                                      AppTheme.surface,
+                                      AppTheme.surface2.withValues(alpha: 0.4),
+                                    ],
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    ClipRRect(
+                                      borderRadius: BorderRadius.circular(8), 
+                                      child: Image.network(
+                                        track.artworkUrl, 
+                                        width: 44, 
+                                        height: 44, 
+                                        fit: BoxFit.cover, 
+                                        errorBuilder: (_, __, ___) => Container(width: 44, height: 44, color: AppTheme.surface2, child: const Icon(Icons.music_note_rounded, color: AppTheme.textMuted, size: 20)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Expanded(child: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(track.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.dmSans(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
+                                      Text(track.artist, maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.dmSans(fontSize: 10, color: AppTheme.textMuted)),
+                                    ])),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  )),
+                ),
+
+              // Trending Header
+              SliverToBoxAdapter(
+                child: _buildStaggeredSection(5, Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+                  child: Row(
+                    children: [
+                      Text('trending now', style: GoogleFonts.syne(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary)),
+                      const SizedBox(width: 8),
+                      Container(width: 6, height: 6, decoration: BoxDecoration(shape: BoxShape.circle, color: AppTheme.accent, boxShadow: [BoxShadow(color: AppTheme.accent.withValues(alpha: 0.5), blurRadius: 6)])),
+                    ],
+                  ),
+                )),
+              ),
+
+              // Trending List
+              if (_isLoading)
+                const SliverToBoxAdapter(child: Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator(color: AppTheme.accent))))
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      if (index >= _trendingTracks.length) return null;
+                      return _buildStaggeredSection(6 + index.clamp(0, 5), TrackCard(
+                        track: _trendingTracks[index],
+                        index: index,
+                        onTap: () => context.read<PlayerProvider>().playQueue(_trendingTracks, index),
+                      ));
+                    },
+                    childCount: _trendingTracks.length,
+                  ),
+                ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 160)),
+            ],
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildFilterChip(String label, bool isActive) {
-    return Container(
-      margin: const EdgeInsets.only(right: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: isActive ? AppTheme.accent.withValues(alpha: 0.15) : AppTheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isActive ? AppTheme.accent.withValues(alpha: 0.5) : AppTheme.border, width: isActive ? 1.5 : 1),
-      ),
-      alignment: Alignment.center,
-      child: Text(label, style: GoogleFonts.dmSans(fontSize: 13, fontWeight: isActive ? FontWeight.bold : FontWeight.normal, color: isActive ? AppTheme.accent : AppTheme.textMuted)),
-    );
-  }
 
   Widget _buildBlob(Color color, double baseSize, AnimationController controller, Alignment alignment) {
     return AnimatedBuilder(

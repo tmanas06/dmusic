@@ -128,6 +128,13 @@ class _MoodCardState extends State<MoodCard>
                             fontSize: 14,
                             fontWeight: FontWeight.w700,
                             color: AppTheme.textPrimary,
+                            shadows: [
+                              Shadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 4,
+                                offset: const Offset(0, 1),
+                              ),
+                            ],
                           ),
                     ),
                     const SizedBox(height: 2),

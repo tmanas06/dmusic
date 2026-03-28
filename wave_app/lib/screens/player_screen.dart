@@ -1,4 +1,5 @@
-import 'dart:math'; // Trigger reload
+import 'dart:math';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -73,333 +74,379 @@ class _PlayerScreenState extends State<PlayerScreen>
 
     return Container(
       height: screenHeight * 0.92,
+      clipBehavior: Clip.antiAlias,
       decoration: const BoxDecoration(
         color: AppTheme.bg,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: SingleChildScrollView(
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          children: [
-            // Drag handle
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 12),
-              decoration: BoxDecoration(
-                color: AppTheme.textMuted.withValues(alpha: 0.3),
-                borderRadius: BorderRadius.circular(2),
-              ),
+      child: Stack(
+        children: [
+          // Mesmerizing Background (Blurred Artwork)
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.45,
+              child: track.artworkUrl.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: track.artworkUrl,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                    )
+                  : const SizedBox.shrink(),
             ),
-            const SizedBox(height: 8),
-
-            // Close / minimize
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                        size: 28, color: AppTheme.textMuted),
-                  ),
-                  Text(
-                    'now playing',
-                    style: GoogleFonts.dmSans(
-                      fontSize: 13,
-                      color: AppTheme.textMuted,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.more_vert_rounded,
-                        size: 22, color: AppTheme.textMuted),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Album artwork with rotation and pulse
-            AnimatedBuilder(
-              animation: _rotationController,
-              builder: (context, child) {
-                final pulse = 1.0 + 0.03 * sin(_rotationController.value * 2 * pi * 4);
-                return Transform.rotate(
-                  angle: _rotationController.value * 2 * pi,
-                  child: Transform.scale(
-                    scale: pulse,
-                    child: child,
-                  ),
-                );
-              },
+          ),
+          Positioned.fill(
+            child: BackdropFilter(
+              filter: ui.ImageFilter.blur(sigmaX: 80, sigmaY: 80),
               child: Container(
-                width: artworkSize,
-                height: artworkSize,
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppTheme.artworkRadius),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accent.withValues(alpha: 0.1),
-                      blurRadius: 40,
-                      spreadRadius: 10,
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppTheme.artworkRadius),
-                  child: track.artworkUrl.isNotEmpty
-                      ? CachedNetworkImage(
-                          imageUrl: track.artworkUrl,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, __, ___) => Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppTheme.accent.withValues(alpha: 0.2),
-                                  AppTheme.accent2.withValues(alpha: 0.2),
-                                ],
-                              ),
-                            ),
-                            child: const Icon(Icons.music_note_rounded,
-                                color: AppTheme.textMuted, size: 64),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppTheme.accent.withValues(alpha: 0.2),
-                                AppTheme.accent2.withValues(alpha: 0.2),
-                              ],
-                            ),
-                          ),
-                          child: const Icon(Icons.music_note_rounded,
-                              color: AppTheme.textMuted, size: 64),
-                        ),
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      AppTheme.bg.withValues(alpha: 0.4),
+                      AppTheme.bg.withValues(alpha: 0.8),
+                      AppTheme.bg,
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 24),
+          ),
 
-            // Track info
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  Text(
-                    track.title,
-                    style: GoogleFonts.syne(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          // Player Content
+          SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              children: [
+                // Drag handle
+                Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(top: 12),
+                  decoration: BoxDecoration(
+                    color: AppTheme.textMuted.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    track.artist,
-                    style: GoogleFonts.dmSans(
-                      fontSize: 15,
-                      color: AppTheme.textMuted,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
+                ),
+                const SizedBox(height: 8),
 
-            // Seek bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: StreamBuilder<Duration>(
-                stream: player.audioService.positionStream,
-                builder: (context, snapshot) {
-                  final position = snapshot.data ?? Duration.zero;
-                  final duration = player.audioService.duration;
-                  final maxDuration =
-                      duration.inMilliseconds > 0 ? duration : const Duration(seconds: 1);
-
-                  return Column(
+                // Close / minimize
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SliderTheme(
-                        data: SliderThemeData(
-                          trackHeight: 3,
-                          activeTrackColor: AppTheme.accent,
-                          inactiveTrackColor: AppTheme.surface2,
-                          thumbColor: AppTheme.accent,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 5,
-                          ),
-                          overlayColor: AppTheme.accent.withValues(alpha: 0.1),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 14,
-                          ),
-                        ),
-                        child: Slider(
-                          value: position.inMilliseconds
-                              .clamp(0, maxDuration.inMilliseconds)
-                              .toDouble(),
-                          max: maxDuration.inMilliseconds.toDouble(),
-                          onChanged: (value) {
-                            player
-                                .seek(Duration(milliseconds: value.toInt()));
-                          },
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 28, color: AppTheme.textMuted),
+                      ),
+                      Text(
+                        'now playing',
+                        style: GoogleFonts.dmSans(
+                          fontSize: 13,
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: 1.2,
                         ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              _formatDuration(position),
-                              style: GoogleFonts.dmSans(
-                                fontSize: 11,
-                                color: AppTheme.textMuted,
-                              ),
-                            ),
-                            Text(
-                              _formatDuration(duration),
-                              style: GoogleFonts.dmSans(
-                                fontSize: 11,
-                                color: AppTheme.textMuted,
-                              ),
-                            ),
-                          ],
-                        ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.more_vert_rounded,
+                            size: 22, color: AppTheme.textMuted),
                       ),
                     ],
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Main controls
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  onPressed: () => player.toggleShuffle(),
-                  icon: Icon(
-                    Icons.shuffle_rounded,
-                    color: player.isShuffleEnabled
-                        ? AppTheme.accent
-                        : AppTheme.textMuted,
-                    size: 22,
                   ),
                 ),
-                const SizedBox(width: 16),
-                IconButton(
-                  onPressed: () => player.skipPrevious(),
-                  icon: const Icon(Icons.skip_previous_rounded,
-                      color: AppTheme.textPrimary, size: 34),
-                ),
-                const SizedBox(width: 16),
+                const SizedBox(height: 12),
 
-                // Big play/pause / loader button
-                GestureDetector(
-                  onTap: () => player.togglePlayPause(),
+                // Album artwork with rotation and pulse
+                AnimatedBuilder(
+                  animation: _rotationController,
+                  builder: (context, child) {
+                    final pulse = 1.0 + 0.03 * sin(_rotationController.value * 2 * pi * 4);
+                    return Transform.rotate(
+                      angle: _rotationController.value * 2 * pi,
+                      child: Transform.scale(
+                        scale: pulse,
+                        child: child,
+                      ),
+                    );
+                  },
                   child: Container(
-                    width: 64,
-                    height: 64,
+                    width: artworkSize,
+                    height: artworkSize,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: AppTheme.accent,
+                      borderRadius: BorderRadius.circular(AppTheme.artworkRadius),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.accent.withValues(alpha: 0.3),
-                          blurRadius: 20,
-                          spreadRadius: 2,
+                          color: AppTheme.accent.withValues(alpha: 0.2),
+                          blurRadius: 50,
+                          spreadRadius: 5,
                         ),
                       ],
                     ),
-                    child: player.isBuffering
-                      ? const Padding(
-                          padding: EdgeInsets.all(18),
-                          child: CircularProgressIndicator(
-                            color: Colors.black,
-                            strokeWidth: 3,
-                          ),
-                        )
-                      : Icon(
-                          player.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                          color: Colors.black,
-                          size: 32,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(AppTheme.artworkRadius),
+                      child: track.artworkUrl.isNotEmpty
+                          ? CachedNetworkImage(
+                              imageUrl: track.artworkUrl,
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: AppTheme.surface2,
+                                child: const Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.accent)),
+                              ),
+                              errorWidget: (_, __, ___) => Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    colors: [
+                                      AppTheme.accent.withValues(alpha: 0.2),
+                                      AppTheme.accent2.withValues(alpha: 0.2),
+                                    ],
+                                  ),
+                                ),
+                                child: const Icon(Icons.music_note_rounded,
+                                    color: AppTheme.textMuted, size: 64),
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.accent.withValues(alpha: 0.2),
+                                    AppTheme.accent2.withValues(alpha: 0.2),
+                                  ],
+                                ),
+                              ),
+                              child: const Icon(Icons.music_note_rounded,
+                                  color: AppTheme.textMuted, size: 64),
+                            ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
+
+                // Track info
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Column(
+                    children: [
+                      Text(
+                        track.title,
+                        style: GoogleFonts.syne(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppTheme.textPrimary,
                         ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        track.artist,
+                        style: GoogleFonts.dmSans(
+                          fontSize: 16,
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(height: 24),
 
-                IconButton(
-                  onPressed: () => player.skipNext(),
-                  icon: const Icon(Icons.skip_next_rounded,
-                      color: AppTheme.textPrimary, size: 34),
-                ),
-                const SizedBox(width: 16),
-                IconButton(
-                  onPressed: () => player.toggleRepeat(),
-                  icon: Icon(
-                    Icons.repeat_rounded,
-                    color: player.isRepeatEnabled
-                        ? AppTheme.accent
-                        : AppTheme.textMuted,
-                    size: 22,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+                // Seek bar
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: StreamBuilder<Duration>(
+                    stream: player.audioService.positionStream,
+                    builder: (context, snapshot) {
+                      final position = snapshot.data ?? Duration.zero;
+                      final duration = player.audioService.duration;
+                      final maxDuration =
+                          duration.inMilliseconds > 0 ? duration : const Duration(seconds: 1);
 
-            // Secondary controls
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  // Download button
-                  _buildDownloadButton(
-                      isDownloaded, isDownloading, progress, track, library),
-                  // Like
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.favorite_border_rounded,
-                        color: AppTheme.textMuted, size: 22),
-                  ),
-                  // Share
-                  IconButton(
-                    onPressed: () {},
-                    icon: const Icon(Icons.share_rounded,
-                        color: AppTheme.textMuted, size: 22),
-                  ),
-                  // EQ shortcut
-                  IconButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const EqualizerScreen()),
+                      return Column(
+                        children: [
+                          SliderTheme(
+                            data: SliderThemeData(
+                              trackHeight: 4,
+                              activeTrackColor: AppTheme.accent,
+                              inactiveTrackColor: AppTheme.surface2.withValues(alpha: 0.5),
+                              thumbColor: Colors.white,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 6,
+                              ),
+                              overlayColor: AppTheme.accent.withValues(alpha: 0.1),
+                              overlayShape: const RoundSliderOverlayShape(
+                                overlayRadius: 16,
+                              ),
+                            ),
+                            child: Slider(
+                              value: position.inMilliseconds
+                                  .clamp(0, maxDuration.inMilliseconds)
+                                  .toDouble(),
+                              max: maxDuration.inMilliseconds.toDouble(),
+                              onChanged: (value) {
+                                player
+                                    .seek(Duration(milliseconds: value.toInt()));
+                              },
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  _formatDuration(position),
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    color: AppTheme.textMuted,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                Text(
+                                  _formatDuration(duration),
+                                  style: GoogleFonts.dmSans(
+                                    fontSize: 12,
+                                    color: AppTheme.textMuted,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       );
                     },
-                    icon: const Icon(Icons.equalizer_rounded,
-                        color: AppTheme.textMuted, size: 22),
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 12),
+
+                // Main controls
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: () => player.toggleShuffle(),
+                      icon: Icon(
+                        Icons.shuffle_rounded,
+                        color: player.isShuffleEnabled
+                            ? AppTheme.accent
+                            : AppTheme.textMuted,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () => player.skipPrevious(),
+                      icon: const Icon(Icons.skip_previous_rounded,
+                          color: AppTheme.textPrimary, size: 42),
+                    ),
+                    const SizedBox(width: 16),
+
+                    // Big play/pause / loader button
+                    GestureDetector(
+                      onTap: () => player.togglePlayPause(),
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.accent,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.accent.withValues(alpha: 0.4),
+                              blurRadius: 25,
+                              spreadRadius: 3,
+                            ),
+                          ],
+                        ),
+                        child: player.isBuffering
+                          ? const Padding(
+                              padding: EdgeInsets.all(22),
+                              child: CircularProgressIndicator(
+                                color: Colors.black,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : Icon(
+                              player.isPlaying
+                                  ? Icons.pause_rounded
+                                  : Icons.play_arrow_rounded,
+                              color: Colors.black,
+                              size: 40,
+                            ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+
+                    IconButton(
+                      onPressed: () => player.skipNext(),
+                      icon: const Icon(Icons.skip_next_rounded,
+                          color: AppTheme.textPrimary, size: 42),
+                    ),
+                    const SizedBox(width: 16),
+                    IconButton(
+                      onPressed: () => player.toggleRepeat(),
+                      icon: Icon(
+                        Icons.repeat_rounded,
+                        color: player.isRepeatEnabled
+                            ? AppTheme.accent
+                            : AppTheme.textMuted,
+                        size: 24,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 32),
+
+                // Secondary controls
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      // Download button
+                      _buildDownloadButton(
+                          isDownloaded, isDownloading, progress, track, library),
+                      // Like
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.favorite_border_rounded,
+                            color: AppTheme.textMuted, size: 24),
+                      ),
+                      // Share
+                      IconButton(
+                        onPressed: () {},
+                        icon: const Icon(Icons.share_rounded,
+                            color: AppTheme.textMuted, size: 24),
+                      ),
+                      // EQ shortcut
+                      IconButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) => const EqualizerScreen()),
+                          );
+                        },
+                        icon: const Icon(Icons.equalizer_rounded,
+                            color: AppTheme.textMuted, size: 24),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-            const SizedBox(height: 32),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -419,8 +466,8 @@ class _PlayerScreenState extends State<PlayerScreen>
       },
       child: AnimatedContainer(
         duration: AppTheme.pressScale,
-        width: 36,
-        height: 36,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isDownloaded
@@ -428,12 +475,12 @@ class _PlayerScreenState extends State<PlayerScreen>
               : Colors.transparent,
           border: Border.all(
             color: isDownloaded ? AppTheme.accent : AppTheme.textMuted,
-            width: 1,
+            width: 1.5,
           ),
         ),
         child: isDownloading
             ? Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 child: CircularProgressIndicator(
                   value: progress > 0 ? progress / 100 : null,
                   strokeWidth: 2,
@@ -444,7 +491,7 @@ class _PlayerScreenState extends State<PlayerScreen>
                 isDownloaded
                     ? Icons.check_rounded
                     : Icons.arrow_downward_rounded,
-                size: 18,
+                size: 20,
                 color: isDownloaded ? AppTheme.accent : AppTheme.textMuted,
               ),
       ),
